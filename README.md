@@ -9,15 +9,36 @@
 - גיבוי ושחזור JSON, ייצוא CSV לאקסל.
 - עובדת גם כאפליקציה מותקנת בטלפון (PWA) וגם בלי חיבור.
 
-האתר: https://kobi2132.github.io/vinyl-library/
+האתר: https://my-vinyl-library.jacob-apps.co.il
 
 ## פיתוח
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173/vinyl-library/
+npm run dev      # http://localhost:5173
 npm run build
 ```
 
 מזהה ה-OAuth של גוגל נמצא ב-`src/config.ts` (אפשר לדרוס עם `VITE_GOOGLE_CLIENT_ID`).
-כל push ל-`main` נפרס אוטומטית ל-GitHub Pages דרך `.github/workflows/deploy.yml`.
+## פריסה
+
+כל push ל-`main` מריץ את `.github/workflows/deploy.yml`, שבונה את האפליקציה ושומר את התוצאה בענף `deploy`
+(האתר בתיקייה `site/`, ולידו `docker-compose.yml`, `nginx.conf` ו-`Caddyfile.snippet`).
+השרת מושך את הענף הזה כל דקה, כמו שאר האפליקציות ב-jacob-apps.co.il.
+
+### התקנה על השרת (פעם אחת)
+
+```bash
+cd /srv/apps
+git clone -b deploy https://github.com/kobi2132/vinyl-library.git vinyl
+cd vinyl
+docker compose up -d
+```
+
+אחר כך:
+
+1. להוסיף את התוכן של `Caddyfile.snippet` ל-`/srv/proxy/Caddyfile` ולטעון מחדש את Caddy.
+2. ב-DNS: רשומת A בשם `my-vinyl-library` אל 65.109.12.170.
+3. עדכון אוטומטי ב-crontab:
+   `* * * * * cd /srv/apps/vinyl && git fetch -q origin deploy && git reset -q --hard origin/deploy`
+4. ב-Google Cloud, ב-OAuth client, להוסיף ל-Authorized JavaScript origins את `https://my-vinyl-library.jacob-apps.co.il`.

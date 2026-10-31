@@ -2,9 +2,9 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// Served from https://kobi2132.github.io/vinyl-library/
+// Served from https://my-vinyl-library.jacob-apps.co.il/
 export default defineConfig({
-  base: '/vinyl-library/',
+  base: '/',
   plugins: [
     react(),
     VitePWA({
