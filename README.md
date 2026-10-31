@@ -8,6 +8,8 @@
 - חיפוש חופשי, מיון לפי אמן/אלבום/שנה/תאריך הוספה, סינון לפי ז'אנר ועשור, תצוגת עטיפות או רשימה.
 - גיבוי ושחזור JSON, ייצוא CSV לאקסל.
 - עובדת גם כאפליקציה מותקנת בטלפון (PWA) וגם בלי חיבור.
+- צור קשר בתפריט, ועמוד מפתח (רק לבעל האפליקציה) עם סטטיסטיקות אנונימיות, משתמשים, מידע ופניות. הנתונים נשמרים בשירות קטן בשרת, ראו [`server/README.md`](server/README.md).
+- כל שינוי שמגיע למשתמשים מוסיף שורה ל-`src/changelog.ts` ומעלה את `version` ב-`package.json`.
 
 האתר: https://my-vinyl-library.jacob-apps.co.il
 
@@ -23,7 +25,7 @@ npm run build
 ## פריסה
 
 כל push ל-`main` מריץ את `.github/workflows/deploy.yml`, שבונה את האפליקציה ושומר את התוצאה בענף `deploy`
-(האתר בתיקייה `site/`, ולידו `docker-compose.yml`, `nginx.conf` ו-`Caddyfile.snippet`).
+(האתר בתיקייה `site/`, השירות בתיקייה `server/`, ולידם `docker-compose.yml`, `nginx.conf` ו-`Caddyfile.snippet`).
 השרת מושך את הענף הזה כל דקה, כמו שאר האפליקציות ב-jacob-apps.co.il.
 
 ### התקנה על השרת (פעם אחת)

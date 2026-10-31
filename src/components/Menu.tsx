@@ -14,6 +14,9 @@ export function Menu({
   onSync,
   onConnect,
   onLogout,
+  onContact,
+  devOpenCount,
+  onDev,
 }: {
   user: GoogleUser | null
   isLocal: boolean
@@ -25,6 +28,10 @@ export function Menu({
   onSync: () => void
   onConnect: () => void
   onLogout: () => void
+  onContact: () => void
+  /** Only for the app's owner: open contact messages, shown on the developer page item */
+  devOpenCount?: number
+  onDev?: () => void
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -62,6 +69,22 @@ export function Menu({
               <small>{user.email}</small>
             </div>
           )}
+          {onDev && (
+            <>
+              <button
+                role="menuitem"
+                className="menu-dev"
+                onClick={() => {
+                  setOpen(false)
+                  onDev()
+                }}
+              >
+                עמוד מפתח
+                {Boolean(devOpenCount) && <span className="menu-badge">{devOpenCount}</span>}
+              </button>
+              <hr />
+            </>
+          )}
           {isLocal && <div className="menu-user"><small>הספרייה שמורה רק במכשיר הזה</small></div>}
           {!isLocal && item('סנכרון עכשיו', onSync)}
           {item('ייצוא לאקסל', onExportExcel)}
@@ -71,6 +94,7 @@ export function Menu({
           {item('גיבוי: הורדת קובץ JSON', onExport)}
           {item('שחזור מגיבוי…', () => file.current?.click())}
           <hr />
+          {item('צור קשר', onContact)}
           {isLocal ? item('התחברות עם Google', onConnect) : item('התנתקות', onLogout)}
           <div className="menu-links">
             <a href="/privacy.html">פרטיות</a>

@@ -4,6 +4,7 @@ import { lookupBarcode as findByBarcode, lookupCatno, lookupDetails, lookupQuery
 import { Modal } from './Modal'
 import { Scanner } from './Scanner'
 import { CatnoScanner } from './CatnoScanner'
+import { track } from '../lib/telemetry'
 import { CandidateList } from './CandidateList'
 import { RecordForm, blankDraft } from './RecordForm'
 import { SearchIcon } from './Icons'
@@ -90,7 +91,9 @@ export function AddFlow({
     setStep({ kind: 'searching', label: `מחפש את ${code}…` })
     const ticket = seq.current
     try {
+      track('scan_barcode')
       const items = await findByBarcode(code)
+      track('lookup', items.some((c) => c.source !== 'discogs') ? 'musicbrainz' : items.length ? 'discogs' : 'none')
       settle(ticket, items.length === 0 ? { kind: 'notfound', barcode: code } : { kind: 'pick', items, barcode: code })
     } catch (e) {
       if (seq.current === ticket) setError((e as Error).message)
@@ -103,6 +106,7 @@ export function AddFlow({
     setStep({ kind: 'searching', label: `מחפש את ${catno}…` })
     const ticket = seq.current
     try {
+      track('scan_catno')
       const items = await lookupCatno(catno)
       settle(ticket, items.length === 0 ? { kind: 'catno-notfound', catno } : { kind: 'pick', items })
     } catch (e) {
@@ -123,6 +127,7 @@ export function AddFlow({
       seq.current++
       setStepNow(next)
     }
+    track('search_name')
     lookupQuery(q)
       .then((items) => show(items.length ? { kind: 'pick', items } : { kind: 'query-notfound', query: q }))
       .catch((e: Error) => {
@@ -157,6 +162,7 @@ export function AddFlow({
     const ticket = seq.current
     const toForm = () => settle(ticket, { kind: 'form', draft })
     try {
+      track('search_name')
       const items = await lookupText(draft.artist, draft.title)
       if (items.length) settle(ticket, { kind: 'pick', items })
       else {

@@ -29,6 +29,7 @@ jobs:
         run: |
           mkdir -p out
           cp -r dist out/site
+          cp -r server out/server
           cp deploy/docker-compose.yml deploy/nginx.conf deploy/Caddyfile.snippet out/
       - name: Publish
         uses: peaceiris/actions-gh-pages@v4

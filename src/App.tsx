@@ -14,6 +14,10 @@ import { AddFlow, type AddStart } from './components/AddFlow'
 import { RecordDetail } from './components/RecordDetail'
 import { InstallPrompt } from './components/InstallPrompt'
 import { shouldInvite } from './lib/install'
+import { ContactPage } from './components/ContactPage'
+import { DevPage } from './components/DevPage'
+import { adminFetch, setLibrary, track, trackOpen } from './lib/telemetry'
+import { ADMIN_EMAIL } from './config'
 import { BarcodeIcon, GridIcon, ListIcon, PlusIcon, SearchIcon } from './components/Icons'
 
 type View = 'grid' | 'list'
@@ -68,10 +72,26 @@ export default function App() {
   const [toast, setToast] = useState<{ text: string; undo?: () => void } | null>(null)
   const [printing, setPrinting] = useState(false)
   const [inviteInstall, setInviteInstall] = useState(false)
+  const [contactOpen, setContactOpen] = useState(false)
+  const [devOpen, setDevOpen] = useState(false)
+  const [devCount, setDevCount] = useState(0)
+  const isAdmin = lib.mode === 'google' && lib.user?.email?.toLowerCase() === ADMIN_EMAIL
 
   const say = (text: string, undo?: () => void) => setToast({ text, undo })
 
   useEffect(preloadGoogle, [])
+  // anonymous usage stats: one "open" per visit, and the library's size with each batch
+  useEffect(() => setLibrary(lib.library), [lib.library])
+  useEffect(() => {
+    if (lib.mode) trackOpen()
+  }, [lib.mode])
+  // the owner sees how many contact messages are waiting, on the developer page menu item
+  useEffect(() => {
+    if (!isAdmin) return
+    adminFetch<{ open: number }>('summary')
+      .then((r) => setDevCount(r.open))
+      .catch(() => {})
+  }, [isAdmin])
   // right after sign-in, invite phone users to install the app (once per visit)
   useEffect(() => {
     if (!lib.mode || !shouldInvite()) return
@@ -171,6 +191,7 @@ export default function App() {
     try {
       const incoming = parseImport(await f.text())
       lib.importLibrary(incoming)
+      track('restore')
       say(`יובאו ${incoming.records.length} תקליטים`)
     } catch (e) {
       say((e as Error).message)
@@ -205,18 +226,31 @@ export default function App() {
           <Menu
             user={lib.user}
             isLocal={lib.mode === 'local'}
-            onExport={() => exportJson(lib.library)}
+            onExport={() => {
+              exportJson(lib.library)
+              track('backup')
+            }}
             onExportExcel={() =>
               exportExcel(shown)
+                .then(() => track('export_excel'))
                 .then(() => say('קובץ האקסל ירד'))
                 .catch((e: Error) => say(`הייצוא נכשל: ${e.message}`))
             }
-            onExportPdf={() => setPrinting(true)}
+            onExportPdf={() => {
+              setPrinting(true)
+              track('export_pdf')
+            }}
             exportNote={filtering ? `הייצוא כולל רק את ${shown.length} התקליטים שמוצגים כרגע` : undefined}
             onImport={importFile}
-            onSync={lib.syncNow}
+            onSync={() => {
+              lib.syncNow()
+              track('sync')
+            }}
             onConnect={() => void lib.connectGoogle().then((err) => err && say(`ההתחברות לא הושלמה: ${err}`))}
             onLogout={logout}
+            onContact={() => setContactOpen(true)}
+            onDev={isAdmin ? () => setDevOpen(true) : undefined}
+            devOpenCount={devCount}
           />
         </div>
       </header>
@@ -365,6 +399,10 @@ export default function App() {
           }}
           onSave={(d) => {
             lib.addRecord(d)
+            // from a lookup (with the scanned barcode, or by name / catalogue number) or typed in
+            const method = d.mbid || d.discogsId ? (d.barcode ? 'scan' : 'search') : 'manual'
+            track('add', method)
+            if (method === 'manual') track('add_manual')
             setAdding(null)
             say(`"${d.title}" נוסף לספרייה`)
           }}
@@ -380,6 +418,7 @@ export default function App() {
           onUpdate={(d) => {
             if (!sameDraft(open, d)) {
               lib.updateRecord(open.id, d)
+              track('edit')
               say('השינויים נשמרו')
             }
           }}
@@ -396,6 +435,8 @@ export default function App() {
         />
       )}
 
+      {contactOpen && <ContactPage user={lib.user} onClose={() => setContactOpen(false)} />}
+      {devOpen && <DevPage openCount={devCount} onCount={setDevCount} onClose={() => setDevOpen(false)} />}
       {inviteInstall && <InstallPrompt onClose={() => setInviteInstall(false)} />}
       {toast && (
         <div className="toast" role="status">
