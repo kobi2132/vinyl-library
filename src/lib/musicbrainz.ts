@@ -127,6 +127,13 @@ export async function searchByText(artist: string, title: string): Promise<Candi
   return rank(j.releases ?? []).map(toCandidate)
 }
 
+export async function searchByCatno(catno: string): Promise<Candidate[]> {
+  const c = catno.trim()
+  if (!c) return []
+  const j = await mbFetch<{ releases: MbRelease[] }>(`/release?query=${encodeURIComponent(`catno:"${c.replace(/"/g, '')}"`)}&limit=25`)
+  return rank(j.releases ?? []).map(toCandidate)
+}
+
 const fmtLength = (ms?: number | null) => {
   if (!ms) return undefined
   const s = Math.round(ms / 1000)

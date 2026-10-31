@@ -28,8 +28,15 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,wasm}'],
+        // the text-recognition engine is large; download it only when catalogue scan is used
+        globIgnores: ['ocr/**'],
         navigateFallbackDenylist: [/^\/__/, /^\/api\//, /\.html$/],
         runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/ocr/'),
+            handler: 'CacheFirst',
+            options: { cacheName: 'ocr', cacheableResponse: { statuses: [200] } },
+          },
           {
             urlPattern: /^https:\/\/(coverartarchive\.org|archive\.org|.*\.archive\.org)\//,
             handler: 'CacheFirst',

@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react'
 import type { RecordDraft, VinylRecord } from '../types'
-import { lookupBarcode as findByBarcode, lookupDetails, lookupText, type Candidate } from '../lib/lookup'
+import { lookupBarcode as findByBarcode, lookupCatno, lookupDetails, lookupText, type Candidate } from '../lib/lookup'
 import { Modal } from './Modal'
 import { Scanner } from './Scanner'
+import { CatnoScanner } from './CatnoScanner'
 import { CandidateList } from './CandidateList'
 import { RecordForm, blankDraft } from './RecordForm'
 
@@ -11,6 +12,7 @@ type Step =
   | { kind: 'searching'; label: string }
   | { kind: 'pick'; items: Candidate[]; barcode?: string }
   | { kind: 'notfound'; barcode: string }
+  | { kind: 'catno-notfound'; catno: string }
   | { kind: 'form'; draft: RecordDraft }
   | { kind: 'duplicate'; draft: RecordDraft; existing: VinylRecord }
 
@@ -32,6 +34,7 @@ export function AddFlow({
   const [step, setStep] = useState<Step>(start === 'scan' ? { kind: 'scan' } : { kind: 'form', draft: blankDraft() })
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [scanMode, setScanMode] = useState<'barcode' | 'catno'>('barcode')
 
   const lookupBarcode = useCallback(async (code: string) => {
     setError(null)
@@ -45,6 +48,19 @@ export function AddFlow({
       setStep({ kind: 'notfound', barcode: code })
     }
   }, [])
+
+  const searchCatno = async (catno: string) => {
+    setError(null)
+    setStep({ kind: 'searching', label: `מחפש את ${catno}…` })
+    try {
+      const items = await lookupCatno(catno)
+      if (items.length === 0) setStep({ kind: 'catno-notfound', catno })
+      else setStep({ kind: 'pick', items })
+    } catch (e) {
+      setError((e as Error).message)
+      setStep({ kind: 'catno-notfound', catno })
+    }
+  }
 
   const pick = async (c: Candidate, barcode?: string) => {
     setBusyId(c.source + c.id)
@@ -89,18 +105,46 @@ export function AddFlow({
     )
 
   const title =
-    step.kind === 'scan' ? 'סריקת ברקוד' : step.kind === 'pick' ? 'איזו הוצאה יש לך?' : step.kind === 'form' ? 'פרטי התקליט' : step.kind === 'duplicate' ? 'כבר בספרייה' : 'חיפוש'
+    step.kind === 'scan' ? (scanMode === 'barcode' ? 'סריקת ברקוד' : 'חיפוש לפי מספר קטלוג') : step.kind === 'pick' ? 'איזו הוצאה יש לך?' : step.kind === 'form' ? 'פרטי התקליט' : step.kind === 'duplicate' ? 'כבר בספרייה' : 'חיפוש'
 
   return (
     <Modal title={title} onClose={onClose}>
       {error && <p className="notice error">{error}</p>}
 
-      {step.kind === 'scan' && <Scanner onCode={lookupBarcode} />}
+      {step.kind === 'scan' && (
+        <>
+          <div className="seg scan-mode" role="tablist">
+            <button role="tab" aria-selected={scanMode === 'barcode'} className={scanMode === 'barcode' ? 'on' : ''} onClick={() => setScanMode('barcode')}>
+              ברקוד
+            </button>
+            <button role="tab" aria-selected={scanMode === 'catno'} className={scanMode === 'catno' ? 'on' : ''} onClick={() => setScanMode('catno')}>
+              מספר קטלוג
+            </button>
+          </div>
+          {scanMode === 'barcode' ? <Scanner onCode={lookupBarcode} /> : <CatnoScanner onSearch={searchCatno} />}
+        </>
+      )}
 
       {step.kind === 'searching' && (
         <div className="center-msg">
           <span className="spinner big" />
           <p>{step.label}</p>
+        </div>
+      )}
+
+      {step.kind === 'catno-notfound' && (
+        <div className="center-msg">
+          <p>
+            לא מצאתי את מספר הקטלוג <bdi dir="ltr">{step.catno}</bdi>. כדאי לבדוק שהוא נקרא נכון.
+          </p>
+          <div className="form-actions">
+            <button className="btn ghost" onClick={() => setStep({ kind: 'scan' })}>
+              לנסות שוב
+            </button>
+            <button className="btn primary" onClick={() => setStep({ kind: 'form', draft: { ...blankDraft(), catalogNumber: step.catno } })}>
+              הוספה ידנית
+            </button>
+          </div>
         </div>
       )}
 
@@ -111,7 +155,7 @@ export function AddFlow({
           </p>
           <CandidateList items={step.items} busyId={busyId} onPick={(c) => pick(c, step.barcode)} />
           <div className="form-actions">
-            {step.barcode && (
+            {(step.barcode || start === 'scan') && (
               <button className="btn ghost" onClick={() => setStep({ kind: 'scan' })}>
                 סריקה חוזרת
               </button>

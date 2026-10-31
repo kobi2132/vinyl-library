@@ -74,6 +74,12 @@ export async function dgSearchByText(artist: string, title: string): Promise<Can
   return rank((j.results ?? []).map(toCandidate))
 }
 
+export async function dgSearchByCatno(catno: string): Promise<Candidate[]> {
+  const p = new URLSearchParams({ type: 'release', per_page: '25', catno: catno.trim() })
+  const j = await dgFetch<{ results: DgSearchResult[] }>(`/database/search?${p}`)
+  return rank((j.results ?? []).map(toCandidate))
+}
+
 interface DgRelease {
   id: number
   title: string
