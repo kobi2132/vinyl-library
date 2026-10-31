@@ -3,6 +3,7 @@ import type { RecordDraft, VinylRecord } from '../types'
 import { Modal } from './Modal'
 import { Cover } from './Cover'
 import { RecordForm } from './RecordForm'
+import { EditIcon, TrashIcon } from './Icons'
 
 export function RecordDetail({
   record,
@@ -51,7 +52,33 @@ export function RecordDetail({
   ).filter(([, v]) => v !== undefined && v !== '' && v !== null)
 
   return (
-    <Modal title={record.title} onClose={onClose} wide>
+    <Modal
+      title={record.title}
+      hideTitle
+      onClose={onClose}
+      wide
+      actions={
+        <>
+          <button className="icon-btn" onClick={() => setEditing(true)} aria-label="עריכה" title="עריכה">
+            <EditIcon />
+          </button>
+          <button className="icon-btn danger-text" onClick={() => setConfirmDelete(true)} aria-label="מחיקה" title="מחיקה">
+            <TrashIcon />
+          </button>
+        </>
+      }
+    >
+      {confirmDelete && (
+        <div className="confirm-bar" role="alert">
+          <span>למחוק את התקליט מהספרייה?</span>
+          <button className="btn ghost" onClick={() => setConfirmDelete(false)}>
+            ביטול
+          </button>
+          <button className="btn danger" onClick={onDelete}>
+            מחיקה
+          </button>
+        </div>
+      )}
       <div className="detail">
         <Cover url={record.coverUrl} artist={record.artist} title={record.title} size="lg" />
         <div className="detail-info">
@@ -70,7 +97,7 @@ export function RecordDetail({
             {facts.map(([k, v]) => (
               <div key={k}>
                 <dt>{k}</dt>
-                <dd dir="auto">{v}</dd>
+                <dd>{typeof v === 'string' ? <bdi>{v}</bdi> : v}</dd>
               </div>
             ))}
           </dl>
@@ -102,29 +129,6 @@ export function RecordDetail({
           </ol>
         </section>
       )}
-
-      <div className="form-actions">
-        {confirmDelete ? (
-          <>
-            <span className="confirm-text">למחוק את התקליט מהספרייה?</span>
-            <button className="btn ghost" onClick={() => setConfirmDelete(false)}>
-              לא
-            </button>
-            <button className="btn danger" onClick={onDelete}>
-              כן, למחוק
-            </button>
-          </>
-        ) : (
-          <>
-            <button className="btn ghost danger-text" onClick={() => setConfirmDelete(true)}>
-              מחיקה
-            </button>
-            <button className="btn primary" onClick={() => setEditing(true)}>
-              עריכה
-            </button>
-          </>
-        )}
-      </div>
     </Modal>
   )
 }

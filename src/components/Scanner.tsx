@@ -103,7 +103,7 @@ export function Scanner({ onCode }: { onCode: (code: string) => void }) {
         </div>
       )}
       {error && <p className="notice">{error}</p>}
-      <p className="hint">כוון את המצלמה לברקוד שעל גב העטיפה</p>
+      <p className="hint">כוונו את המצלמה לברקוד שעל גב העטיפה</p>
       <form
         className="row"
         onSubmit={(e) => {
@@ -114,13 +114,13 @@ export function Scanner({ onCode }: { onCode: (code: string) => void }) {
       >
         <input
           inputMode="numeric"
-          placeholder="או הקלד ברקוד"
+          placeholder="או הקלידו את מספר הברקוד"
           value={manual}
           onChange={(e) => setManual(e.target.value)}
           dir="ltr"
         />
         <button className="btn" type="submit" disabled={manual.replace(/\D/g, '').length < 8}>
-          חפש
+          חיפוש
         </button>
       </form>
     </div>

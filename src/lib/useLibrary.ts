@@ -159,6 +159,16 @@ export function useLibrary() {
     [commit],
   )
 
+  /** Undo a delete: the record comes back newer than its deletion, so the merge keeps it. */
+  const restoreRecord = useCallback(
+    (rec: VinylRecord) => {
+      const cur = libRef.current
+      if (cur.records.some((r) => r.id === rec.id)) return
+      commit({ ...cur, records: [...cur.records, { ...rec, updatedAt: new Date().toISOString() }] })
+    },
+    [commit],
+  )
+
   const importLibrary = useCallback(
     (incoming: LibraryFile) => {
       commit(mergeLibraries(libRef.current, incoming))
@@ -166,7 +176,8 @@ export function useLibrary() {
     [commit],
   )
 
-  const connectGoogle = useCallback(async () => {
+  /** Resolves with an error message when sign-in failed, or null. */
+  const connectGoogle = useCallback(async (): Promise<string | null> => {
     setError(null)
     try {
       const { token, user } = await signIn()
@@ -174,8 +185,11 @@ export function useLibrary() {
       localStorage.setItem(MODE_KEY, 'google')
       setMode('google')
       await sync(token)
+      return null
     } catch (e) {
-      setError((e as Error).message)
+      const msg = (e as Error).message
+      setError(msg)
+      return msg
     }
   }, [sync])
 
@@ -213,6 +227,7 @@ export function useLibrary() {
     addRecord,
     updateRecord,
     removeRecord,
+    restoreRecord,
     importLibrary,
     connectGoogle,
     startLocal,

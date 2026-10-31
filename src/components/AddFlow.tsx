@@ -1,11 +1,15 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { RecordDraft, VinylRecord } from '../types'
-import { lookupBarcode as findByBarcode, lookupCatno, lookupDetails, lookupText, type Candidate } from '../lib/lookup'
+import { lookupBarcode as findByBarcode, lookupCatno, lookupDetails, lookupQuery, lookupText, type Candidate } from '../lib/lookup'
 import { Modal } from './Modal'
 import { Scanner } from './Scanner'
 import { CatnoScanner } from './CatnoScanner'
 import { CandidateList } from './CandidateList'
 import { RecordForm, blankDraft } from './RecordForm'
+import { SearchIcon } from './Icons'
+
+/** How the add flow opens: the camera, an empty form, or a search for text typed in the library's search box. */
+export type AddStart = 'scan' | 'manual' | { query: string }
 
 type Step =
   | { kind: 'scan' }
@@ -13,6 +17,7 @@ type Step =
   | { kind: 'pick'; items: Candidate[]; barcode?: string }
   | { kind: 'notfound'; barcode: string }
   | { kind: 'catno-notfound'; catno: string }
+  | { kind: 'query-notfound'; query: string }
   | { kind: 'form'; draft: RecordDraft }
   | { kind: 'duplicate'; draft: RecordDraft; existing: VinylRecord }
 
@@ -24,14 +29,16 @@ export function AddFlow({
   onClose,
   onOpenExisting,
 }: {
-  start: 'scan' | 'manual'
+  start: AddStart
   records: VinylRecord[]
   genreOptions: string[]
   onSave: (d: RecordDraft) => void
   onClose: () => void
   onOpenExisting: (r: VinylRecord) => void
 }) {
-  const [step, setStep] = useState<Step>(start === 'scan' ? { kind: 'scan' } : { kind: 'form', draft: blankDraft() })
+  const [step, setStep] = useState<Step>(
+    start === 'scan' ? { kind: 'scan' } : start === 'manual' ? { kind: 'form', draft: blankDraft() } : { kind: 'searching', label: `מחפש את "${start.query}"…` },
+  )
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [scanMode, setScanMode] = useState<'barcode' | 'catno'>('barcode')
@@ -61,6 +68,20 @@ export function AddFlow({
       setStep({ kind: 'catno-notfound', catno })
     }
   }
+
+  // opened from the library's "not in your collection" message: search the databases for that text
+  const queried = useRef(false)
+  useEffect(() => {
+    if (typeof start !== 'object' || queried.current) return
+    queried.current = true
+    const q = start.query
+    lookupQuery(q)
+      .then((items) => setStep(items.length ? { kind: 'pick', items } : { kind: 'query-notfound', query: q }))
+      .catch((e: Error) => {
+        setError(e.message)
+        setStep({ kind: 'query-notfound', query: q })
+      })
+  }, [start])
 
   const pick = async (c: Candidate, barcode?: string) => {
     setBusyId(c.source + c.id)
@@ -105,7 +126,25 @@ export function AddFlow({
     )
 
   const title =
-    step.kind === 'scan' ? (scanMode === 'barcode' ? 'סריקת ברקוד' : 'חיפוש לפי מספר קטלוג') : step.kind === 'pick' ? 'איזו הוצאה יש לך?' : step.kind === 'form' ? 'פרטי התקליט' : step.kind === 'duplicate' ? 'כבר בספרייה' : 'חיפוש'
+    step.kind === 'scan'
+      ? scanMode === 'barcode'
+        ? 'סריקת ברקוד'
+        : 'חיפוש לפי מספר קטלוג'
+      : step.kind === 'pick'
+        ? 'איזו הוצאה יש לכם?'
+        : step.kind === 'form'
+          ? step.draft.mbid || step.draft.discogsId
+            ? 'פרטי התקליט'
+            : 'הוספה ידנית'
+          : step.kind === 'duplicate'
+            ? 'כבר יש לכם את התקליט הזה'
+            : step.kind === 'notfound'
+              ? 'הברקוד לא נמצא'
+              : step.kind === 'catno-notfound'
+                ? 'מספר הקטלוג לא נמצא'
+                : step.kind === 'query-notfound'
+                  ? 'לא נמצא במאגר'
+                  : 'מחפש…'
 
   return (
     <Modal title={title} onClose={onClose}>
@@ -148,10 +187,26 @@ export function AddFlow({
         </div>
       )}
 
+      {step.kind === 'query-notfound' && (
+        <div className="center-msg">
+          <p>
+            לא מצאתי במאגר את <bdi>&quot;{step.query}&quot;</bdi>. אפשר לנסות סריקה, או למלא את הפרטים ידנית.
+          </p>
+          <div className="form-actions">
+            <button className="btn ghost" onClick={() => setStep({ kind: 'scan' })}>
+              סריקת ברקוד
+            </button>
+            <button className="btn primary" onClick={() => setStep({ kind: 'form', draft: blankDraft() })}>
+              הוספה ידנית
+            </button>
+          </div>
+        </div>
+      )}
+
       {step.kind === 'pick' && (
         <>
           <p className="hint">
-            {step.items.length === 1 ? 'נמצאה הוצאה אחת. לחץ עליה כדי להוסיף לספרייה.' : `נמצאו ${step.items.length} הוצאות. לחץ על זו שזהה לשלך והיא תתווסף לספרייה.`}
+            {step.items.length === 1 ? 'נמצאה הוצאה אחת. בחרו בה כדי להוסיף לספרייה.' : `נמצאו ${step.items.length} הוצאות. בחרו את זו שזהה לשלכם והיא תתווסף לספרייה.`}
           </p>
           <CandidateList items={step.items} busyId={busyId} onPick={(c) => pick(c, step.barcode)} />
           <div className="form-actions">
@@ -186,14 +241,14 @@ export function AddFlow({
       {step.kind === 'duplicate' && (
         <div className="center-msg">
           <p>
-            כבר יש לך את <strong>{step.existing.title}</strong> של {step.existing.artist} בספרייה.
+            <strong><bdi>{step.existing.title}</bdi></strong> של <bdi>{step.existing.artist}</bdi> כבר נמצא בספרייה.
           </p>
-          <div className="form-actions">
-            <button className="btn ghost" onClick={() => onOpenExisting(step.existing)}>
-              הצג את הקיים
+          <div className="form-actions stack">
+            <button className="btn primary" onClick={() => onOpenExisting(step.existing)}>
+              פתיחת התקליט הקיים
             </button>
-            <button className="btn primary" onClick={() => onSave(step.draft)}>
-              הוסף בכל זאת (עותק נוסף)
+            <button className="btn ghost" onClick={() => onSave(step.draft)}>
+              הוספת עותק נוסף
             </button>
           </div>
         </div>
@@ -238,15 +293,16 @@ function FormStep({
   if (pending && dup) {
     return (
       <div className="center-msg">
+        <h3>כבר יש לכם את התקליט הזה</h3>
         <p>
-          כבר יש לך את <strong>{dup.title}</strong> של {dup.artist} בספרייה.
+          <strong><bdi>{dup.title}</bdi></strong> של <bdi>{dup.artist}</bdi> כבר נמצא בספרייה.
         </p>
-        <div className="form-actions">
-          <button className="btn ghost" onClick={() => onOpenExisting(dup)}>
-            הצג את הקיים
+        <div className="form-actions stack">
+          <button className="btn primary" onClick={() => onOpenExisting(dup)}>
+            פתיחת התקליט הקיים
           </button>
-          <button className="btn primary" onClick={() => onSave(pending)}>
-            הוסף בכל זאת (עותק נוסף)
+          <button className="btn ghost" onClick={() => onSave(pending)}>
+            הוספת עותק נוסף
           </button>
         </div>
       </div>
@@ -255,13 +311,14 @@ function FormStep({
 
   return (
     <>
-      {dup && !pending && <p className="notice">שים לב: התקליט הזה כבר נמצא בספרייה שלך.</p>}
+      {dup && !pending && <p className="notice">התקליט הזה כבר נמצא בספרייה.</p>}
       <RecordForm
         initial={draft}
         genreOptions={genreOptions}
         saveLabel="הוספה לספרייה"
         onCancel={onCancel}
         onSave={(d) => (duplicate(d) ? setPending(d) : onSave(d))}
+        foldExtras={!fromLookup}
         extra={!fromLookup && <SearchHelper onSearch={onSearch} />}
       />
     </>
@@ -273,7 +330,7 @@ function SearchHelper({ onSearch }: { onSearch: (d: RecordDraft) => void }) {
   return (
     <button
       type="button"
-      className="btn subtle wide"
+      className="btn primary wide lookup-btn"
       onClick={(e) => {
         const form = (e.currentTarget as HTMLButtonElement).form!
         const [artist, title] = Array.from(form.querySelectorAll<HTMLInputElement>('input[required]')).map((i) => i.value)
@@ -281,7 +338,7 @@ function SearchHelper({ onSearch }: { onSearch: (d: RecordDraft) => void }) {
         onSearch({ ...blankDraft(), artist, title })
       }}
     >
-      🔎 מלא פרטים אוטומטית לפי אמן ושם אלבום
+      <SearchIcon size={18} /> מילוי אוטומטי מהמאגר
     </button>
   )
 }

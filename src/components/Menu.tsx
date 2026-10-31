@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { GoogleUser } from '../lib/google'
+import { DotsIcon } from './Icons'
 
 export function Menu({
   user,
@@ -10,6 +11,7 @@ export function Menu({
   exportNote,
   onImport,
   onSync,
+  onConnect,
   onLogout,
 }: {
   user: GoogleUser | null
@@ -20,6 +22,7 @@ export function Menu({
   exportNote?: string
   onImport: (f: File) => void
   onSync: () => void
+  onConnect: () => void
   onLogout: () => void
 }) {
   const [open, setOpen] = useState(false)
@@ -47,7 +50,7 @@ export function Menu({
   return (
     <div className="menu" ref={ref}>
       <button className="avatar-btn" onClick={() => setOpen((o) => !o)} aria-label="תפריט" aria-expanded={open}>
-        {user?.picture ? <img src={user.picture} alt="" referrerPolicy="no-referrer" /> : <span>☰</span>}
+        {user?.picture ? <img src={user.picture} alt="" referrerPolicy="no-referrer" /> : <DotsIcon />}
       </button>
       {open && (
         <div className="menu-pop" role="menu">
@@ -66,7 +69,7 @@ export function Menu({
           {item('גיבוי: הורדת קובץ JSON', onExport)}
           {item('שחזור מגיבוי…', () => file.current?.click())}
           <hr />
-          {item(isLocal ? 'התחברות עם Google' : 'התנתקות', onLogout)}
+          {isLocal ? item('התחברות עם Google', onConnect) : item('התנתקות', onLogout)}
           <div className="menu-links">
             <a href="/privacy.html">פרטיות</a>
             <a href="/terms.html">תנאי שימוש</a>
