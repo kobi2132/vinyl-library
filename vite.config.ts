@@ -28,7 +28,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,wasm}'],
-        navigateFallbackDenylist: [/^\/__/, /\.html$/],
+        navigateFallbackDenylist: [/^\/__/, /^\/api\//, /\.html$/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/(coverartarchive\.org|archive\.org|.*\.archive\.org)\//,
