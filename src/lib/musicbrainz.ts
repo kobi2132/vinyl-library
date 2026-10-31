@@ -18,7 +18,7 @@ async function mbFetch<T>(path: string): Promise<T> {
       await sleep(1500 * (attempt + 1))
       continue
     }
-    if (res.status === 503) throw new Error('MusicBrainz עמוס כרגע, נסה שוב בעוד רגע')
+    if (res.status === 503) throw new Error('MusicBrainz עמוס כרגע, נסו שוב בעוד רגע')
     if (!res.ok) throw new Error(`שגיאה בחיפוש (${res.status})`)
     return (await res.json()) as T
   }
@@ -124,6 +124,14 @@ export async function searchByText(artist: string, title: string): Promise<Candi
   const j = await mbFetch<{ releases: MbRelease[] }>(
     `/release?query=${encodeURIComponent(parts.join(' AND '))}&limit=25`,
   )
+  return rank(j.releases ?? []).map(toCandidate)
+}
+
+/** Free text: whatever the person typed, matched against album and artist names. */
+export async function searchByQuery(q: string): Promise<Candidate[]> {
+  const t = esc(q.trim())
+  if (!t) return []
+  const j = await mbFetch<{ releases: MbRelease[] }>(`/release?query=${encodeURIComponent(`release:(${t}) OR artist:(${t})`)}&limit=25`)
   return rank(j.releases ?? []).map(toCandidate)
 }
 

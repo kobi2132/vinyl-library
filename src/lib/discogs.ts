@@ -14,7 +14,7 @@ async function dgFetch<T>(path: string): Promise<T> {
   const isJson = (res.headers.get('content-type') ?? '').includes('json')
   // Not configured on this server (falls through to the app's index.html) or proxy missing
   if (!isJson || res.status === 404 || res.status === 401 || res.status === 502) throw new DiscogsUnavailable()
-  if (res.status === 429) throw new Error('Discogs עמוס כרגע, נסה שוב בעוד רגע')
+  if (res.status === 429) throw new Error('Discogs עמוס כרגע, נסו שוב בעוד רגע')
   if (!res.ok) throw new Error(`שגיאה בחיפוש ב-Discogs (${res.status})`)
   return (await res.json()) as T
 }
@@ -70,6 +70,12 @@ export async function dgSearchByText(artist: string, title: string): Promise<Can
   const p = new URLSearchParams({ type: 'release', per_page: '20' })
   if (artist.trim()) p.set('artist', artist.trim())
   if (title.trim()) p.set('release_title', title.trim())
+  const j = await dgFetch<{ results: DgSearchResult[] }>(`/database/search?${p}`)
+  return rank((j.results ?? []).map(toCandidate))
+}
+
+export async function dgSearchByQuery(q: string): Promise<Candidate[]> {
+  const p = new URLSearchParams({ type: 'release', per_page: '20', q: q.trim() })
   const j = await dgFetch<{ results: DgSearchResult[] }>(`/database/search?${p}`)
   return rank((j.results ?? []).map(toCandidate))
 }

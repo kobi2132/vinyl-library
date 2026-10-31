@@ -1,6 +1,6 @@
 import type { RecordDraft } from '../types'
-import { getReleaseDetails, searchByBarcode, searchByCatno, searchByText, type Candidate } from './musicbrainz'
-import { DiscogsUnavailable, dgGetReleaseDetails, dgSearchByBarcode, dgSearchByCatno, dgSearchByText } from './discogs'
+import { getReleaseDetails, searchByBarcode, searchByCatno, searchByQuery, searchByText, type Candidate } from './musicbrainz'
+import { DiscogsUnavailable, dgGetReleaseDetails, dgSearchByBarcode, dgSearchByCatno, dgSearchByQuery, dgSearchByText } from './discogs'
 
 /** Ask MusicBrainz and Discogs together; show whatever either finds. */
 async function both(mb: Promise<Candidate[]>, dg: Promise<Candidate[]>): Promise<Candidate[]> {
@@ -19,6 +19,7 @@ async function both(mb: Promise<Candidate[]>, dg: Promise<Candidate[]>): Promise
 
 export const lookupBarcode = (code: string) => both(searchByBarcode(code), dgSearchByBarcode(code))
 export const lookupText = (artist: string, title: string) => both(searchByText(artist, title), dgSearchByText(artist, title))
+export const lookupQuery = (q: string) => both(searchByQuery(q), dgSearchByQuery(q))
 
 
 /**

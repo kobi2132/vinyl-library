@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { readCatnos, warmUpOcr } from '../lib/ocr'
+import { CameraIcon } from './Icons'
 
 // The strip inside the viewfinder that gets read, as fractions of the viewfinder
 const AIM = { x: 0.06, y: 0.33, w: 0.88, h: 0.34 }
@@ -77,12 +78,12 @@ export function CatnoScanner({ onSearch }: { onSearch: (catno: string) => void }
         navigator.vibrate?.(60)
         setValue(codes[0])
         setOptions(codes.length > 1 ? codes : [])
-        setNote('בדוק שהמספר נקרא נכון, תקן אם צריך, ולחץ חפש.')
+        setNote('בדקו שהמספר נקרא נכון, תקנו אם צריך, ולחצו על חיפוש.')
       } else {
-        setNote('לא הצלחתי לקרוא מספר. נסה לקרב, להאיר טוב יותר, או להקליד אותו.')
+        setNote('לא הצלחתי לקרוא מספר. נסו לקרב, להאיר טוב יותר, או להקליד אותו.')
       }
     } catch {
-      setNote('קריאת הטקסט לא נטענה. בדוק את החיבור לאינטרנט, או הקלד את המספר.')
+      setNote('קריאת הטקסט לא נטענה. בדקו את החיבור לאינטרנט, או הקלידו את המספר.')
     } finally {
       setReading(false)
     }
@@ -108,9 +109,9 @@ export function CatnoScanner({ onSearch }: { onSearch: (catno: string) => void }
       {camError && <p className="notice">{camError}</p>}
       {!camError && (
         <>
-          <p className="hint">כוון את המסגרת למספר הקטלוג שעל השדרה או על המדבקה, כשהטקסט אופקי</p>
+          <p className="hint">כוונו את המסגרת למספר הקטלוג שעל השדרה או על המדבקה, כשהטקסט אופקי</p>
           <button className="btn primary wide" onClick={capture} disabled={!ready || reading}>
-            📷 צלם וקרא
+            <CameraIcon size={20} /> צילום וקריאה
           </button>
         </>
       )}
@@ -141,7 +142,7 @@ export function CatnoScanner({ onSearch }: { onSearch: (catno: string) => void }
           spellCheck={false}
         />
         <button className="btn" type="submit" disabled={clean.length < 3}>
-          חפש
+          חיפוש
         </button>
       </form>
     </div>

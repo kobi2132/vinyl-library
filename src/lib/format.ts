@@ -3,10 +3,10 @@ import type { VinylRecord } from '../types'
 export type SortKey = 'artist' | 'title' | 'year-desc' | 'year-asc' | 'added'
 
 export const SORT_LABELS: Record<SortKey, string> = {
-  artist: 'אמן (א-ת / A-Z)',
-  title: 'שם אלבום (א-ת / A-Z)',
-  'year-desc': 'שנה (חדש לישן)',
-  'year-asc': 'שנה (ישן לחדש)',
+  artist: 'אמן',
+  title: 'שם אלבום',
+  'year-desc': 'שנה (מהחדש)',
+  'year-asc': 'שנה (מהישן)',
   added: 'נוספו לאחרונה',
 }
 

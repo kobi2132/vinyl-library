@@ -5,16 +5,28 @@ import { decadeOf, initialOf, matches, sortRecords, SORT_LABELS, type SortKey } 
 import { exportExcel, exportJson } from './lib/exporters'
 import { PrintSheet } from './components/PrintSheet'
 import { parseImport } from './lib/merge'
-import type { VinylRecord } from './types'
+import type { RecordDraft, VinylRecord } from './types'
 import { Welcome } from './components/Welcome'
 import { Menu } from './components/Menu'
 import { Cover } from './components/Cover'
-import { AddFlow } from './components/AddFlow'
+import { AddFlow, type AddStart } from './components/AddFlow'
 import { RecordDetail } from './components/RecordDetail'
 import { InstallPrompt } from './components/InstallPrompt'
 import { shouldInvite } from './lib/install'
+import { BarcodeIcon, GridIcon, ListIcon, PlusIcon, SearchIcon } from './components/Icons'
 
 type View = 'grid' | 'list'
+
+/** True when saving the edit form would change nothing. */
+function sameDraft(r: VinylRecord, d: RecordDraft) {
+  const norm = (x: RecordDraft) => {
+    const keep = Object.entries(x)
+      .filter(([k, v]) => !['id', 'addedAt', 'updatedAt'].includes(k) && v !== undefined && v !== '' && !(Array.isArray(v) && v.length === 0))
+      .sort(([a], [b]) => a.localeCompare(b))
+    return JSON.stringify(keep)
+  }
+  return norm(r) === norm(d)
+}
 
 function usePref<T extends string>(key: string, initial: T) {
   const [v, setV] = useState<T>(() => {
@@ -38,9 +50,9 @@ const STATUS_TEXT: Record<SyncStatus, string> = {
   idle: '',
   syncing: 'שומר…',
   synced: 'שמור בדרייב',
-  'needs-auth': 'לחץ להתחברות מחדש',
+  'needs-auth': 'התחברות מחדש',
   offline: 'אין חיבור, יישמר אחר כך',
-  error: 'שגיאה בשמירה, לחץ לנסות שוב',
+  error: 'השמירה נכשלה, לנסות שוב',
 }
 
 export default function App() {
@@ -50,11 +62,13 @@ export default function App() {
   const [view, setView] = usePref<View>('vl.view', 'grid')
   const [genre, setGenre] = useState('')
   const [decade, setDecade] = useState('')
-  const [adding, setAdding] = useState<'scan' | 'manual' | null>(null)
+  const [adding, setAdding] = useState<AddStart | null>(null)
   const [openId, setOpenId] = useState<string | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ text: string; undo?: () => void } | null>(null)
   const [printing, setPrinting] = useState(false)
   const [inviteInstall, setInviteInstall] = useState(false)
+
+  const say = (text: string, undo?: () => void) => setToast({ text, undo })
 
   useEffect(preloadGoogle, [])
   // right after sign-in, invite phone users to install the app (once per visit)
@@ -76,7 +90,7 @@ export default function App() {
   }, [printing])
   useEffect(() => {
     if (!toast) return
-    const t = setTimeout(() => setToast(null), 2600)
+    const t = setTimeout(() => setToast(null), toast.undo ? 6000 : 2600)
     return () => clearTimeout(t)
   }, [toast])
 
@@ -102,8 +116,11 @@ export default function App() {
   }, [lib.records, query, genre, decade, sort])
 
   const groups = useMemo(() => {
+    // the cover grid is one continuous grid; section headings only in the list view
     const keyOf = (r: VinylRecord) =>
-      sort === 'artist'
+      view === 'grid'
+        ? ''
+        : sort === 'artist'
         ? initialOf(r.artist)
         : sort === 'title'
           ? initialOf(r.title)
@@ -119,7 +136,7 @@ export default function App() {
       else out.push({ key: k, items: [r] })
     }
     return out
-  }, [shown, sort])
+  }, [shown, sort, view])
 
   if (!lib.mode) return <Welcome onGoogle={lib.connectGoogle} onLocal={lib.startLocal} error={lib.error} />
 
@@ -136,9 +153,9 @@ export default function App() {
     try {
       const incoming = parseImport(await f.text())
       lib.importLibrary(incoming)
-      setToast(`יובאו ${incoming.records.length} תקליטים`)
+      say(`יובאו ${incoming.records.length} תקליטים`)
     } catch (e) {
-      setToast((e as Error).message)
+      say((e as Error).message)
     }
   }
 
@@ -173,27 +190,39 @@ export default function App() {
             onExport={() => exportJson(lib.library)}
             onExportExcel={() =>
               exportExcel(shown)
-                .then(() => setToast('קובץ האקסל ירד'))
-                .catch((e: Error) => setToast(`הייצוא נכשל: ${e.message}`))
+                .then(() => say('קובץ האקסל ירד'))
+                .catch((e: Error) => say(`הייצוא נכשל: ${e.message}`))
             }
             onExportPdf={() => setPrinting(true)}
             exportNote={filtering ? `הייצוא כולל רק את ${shown.length} התקליטים שמוצגים כרגע` : undefined}
             onImport={importFile}
             onSync={lib.syncNow}
+            onConnect={() => void lib.connectGoogle().then((err) => err && say(`ההתחברות לא הושלמה: ${err}`))}
             onLogout={logout}
           />
         </div>
       </header>
 
       <section className="toolbar">
-        <div className="search">
-          <span aria-hidden="true">⌕</span>
-          <input
-            type="search"
-            placeholder="חיפוש אמן, אלבום, שיר, לייבל…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
+        <div className="toolbar-row">
+          <div className="search">
+            <SearchIcon size={18} />
+            <input
+              type="search"
+              placeholder="חיפוש אמן, אלבום, שיר…"
+              aria-label="חיפוש באוסף"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <div className="seg" role="group" aria-label="תצוגה">
+            <button className={view === 'grid' ? 'on' : ''} onClick={() => setView('grid')} aria-label="עטיפות" aria-pressed={view === 'grid'}>
+              <GridIcon size={18} />
+            </button>
+            <button className={view === 'list' ? 'on' : ''} onClick={() => setView('list')} aria-label="רשימה" aria-pressed={view === 'list'}>
+              <ListIcon size={18} />
+            </button>
+          </div>
         </div>
         <div className="filters">
           <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="מיון">
@@ -204,7 +233,7 @@ export default function App() {
             ))}
           </select>
           <select value={genre} onChange={(e) => setGenre(e.target.value)} aria-label="ז'אנר" className={genre ? 'active' : ''}>
-            <option value="">כל הז'אנרים</option>
+            <option value="">ז'אנר</option>
             {genreCounts.map(([g, n]) => (
               <option key={g} value={g}>
                 {g} ({n})
@@ -212,21 +241,13 @@ export default function App() {
             ))}
           </select>
           <select value={decade} onChange={(e) => setDecade(e.target.value)} aria-label="עשור" className={decade ? 'active' : ''}>
-            <option value="">כל השנים</option>
+            <option value="">שנים</option>
             {decades.map((d) => (
               <option key={d} value={d}>
                 שנות ה-{d}
               </option>
             ))}
           </select>
-          <div className="seg" role="group" aria-label="תצוגה">
-            <button className={view === 'grid' ? 'on' : ''} onClick={() => setView('grid')} aria-label="עטיפות">
-              ▦
-            </button>
-            <button className={view === 'list' ? 'on' : ''} onClick={() => setView('list')} aria-label="רשימה">
-              ☰
-            </button>
-          </div>
         </div>
         {filtering && (
           <div className="filter-summary">
@@ -250,7 +271,7 @@ export default function App() {
           <div className="empty">
             <div className="empty-disc" aria-hidden="true" />
             <h2>האוסף עוד ריק</h2>
-            <p>סרוק את הברקוד שעל גב העטיפה של התקליט הראשון שלך.</p>
+            <p>סרקו את הברקוד שעל גב העטיפה של התקליט הראשון שלכם.</p>
             <button className="btn primary big" onClick={() => setAdding('scan')}>
               סריקת ברקוד
             </button>
@@ -260,7 +281,25 @@ export default function App() {
           </div>
         ) : shown.length === 0 ? (
           <div className="empty">
-            <p>לא נמצאו תקליטים שמתאימים לחיפוש.</p>
+            <h2>{query.trim() ? 'אין באוסף תקליט כזה' : 'אין תקליטים שמתאימים לסינון'}</h2>
+            {query.trim() ? (
+              <>
+                <p>אולי עוד לא הוספתם אותו?</p>
+                <button className="btn primary" onClick={() => setAdding({ query: query.trim() })}>
+                  חיפוש &quot;{query.trim()}&quot; במאגר והוספה
+                </button>
+              </>
+            ) : (
+              <button
+                className="link-btn"
+                onClick={() => {
+                  setGenre('')
+                  setDecade('')
+                }}
+              >
+                ניקוי סינון
+              </button>
+            )}
           </div>
         ) : (
           groups.map((g) => (
@@ -288,10 +327,10 @@ export default function App() {
       {lib.records.length > 0 && (
         <div className="fab-row">
           <button className="fab secondary" onClick={() => setAdding('manual')} aria-label="הוספה ידנית">
-            ＋
+            <PlusIcon size={22} />
           </button>
           <button className="fab" onClick={() => setAdding('scan')}>
-            <span aria-hidden="true">▥</span> סריקה
+            <BarcodeIcon size={22} /> סריקה
           </button>
         </div>
       )}
@@ -309,7 +348,7 @@ export default function App() {
           onSave={(d) => {
             lib.addRecord(d)
             setAdding(null)
-            setToast(`"${d.title}" נוסף לספרייה`)
+            say(`"${d.title}" נוסף לספרייה`)
           }}
         />
       )}
@@ -321,13 +360,16 @@ export default function App() {
           genreOptions={genreCounts.map(([g]) => g)}
           onClose={() => setOpenId(null)}
           onUpdate={(d) => {
-            lib.updateRecord(open.id, d)
-            setToast('השינויים נשמרו')
+            if (!sameDraft(open, d)) {
+              lib.updateRecord(open.id, d)
+              say('השינויים נשמרו')
+            }
           }}
           onDelete={() => {
-            lib.removeRecord(open.id)
+            const gone = open
+            lib.removeRecord(gone.id)
             setOpenId(null)
-            setToast('התקליט נמחק')
+            say(`"${gone.title}" נמחק`, () => lib.restoreRecord(gone))
           }}
           onGenre={(g) => {
             setGenre(g)
@@ -337,7 +379,22 @@ export default function App() {
       )}
 
       {inviteInstall && <InstallPrompt onClose={() => setInviteInstall(false)} />}
-      {toast && <div className="toast">{toast}</div>}
+      {toast && (
+        <div className="toast" role="status">
+          <span className="toast-text">{toast.text}</span>
+          {toast.undo && (
+            <button
+              className="toast-undo"
+              onClick={() => {
+                toast.undo?.()
+                setToast(null)
+              }}
+            >
+              ביטול
+            </button>
+          )}
+        </div>
+      )}
       {printing && (
         <PrintSheet
           records={shown}

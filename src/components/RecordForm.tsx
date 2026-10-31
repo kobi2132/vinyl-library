@@ -33,6 +33,7 @@ export function RecordForm({
   onCancel,
   saveLabel = 'שמירה',
   extra,
+  foldExtras = false,
 }: {
   initial: RecordDraft
   genreOptions: string[]
@@ -40,6 +41,8 @@ export function RecordForm({
   onCancel: () => void
   saveLabel?: string
   extra?: React.ReactNode
+  /** Adding by hand: only artist and album up front, the rest folded under "more details". */
+  foldExtras?: boolean
 }) {
   const [d, setD] = useState<RecordDraft>(initial)
   const [genres, setGenres] = useState(initial.genres.join(', '))
@@ -68,6 +71,8 @@ export function RecordForm({
     })
   }
 
+  const Extras = foldExtras ? FoldedExtras : Plain
+
   return (
     <form className="record-form" onSubmit={submit}>
       <div className="form-top">
@@ -81,27 +86,28 @@ export function RecordForm({
             שם האלבום *
             <input required value={d.title} onChange={(e) => set('title', e.target.value)} />
           </label>
-          <div className="row">
-            <label>
-              שנה
-              <input
-                inputMode="numeric"
-                value={d.year ?? ''}
-                onChange={(e) => {
-                  const n = parseInt(e.target.value.replace(/\D/g, '').slice(0, 4), 10)
-                  set('year', Number.isFinite(n) ? n : undefined)
-                }}
-                dir="ltr"
-              />
-            </label>
-            <label>
-              פורמט
-              <input value={d.format ?? ''} onChange={(e) => set('format', e.target.value)} placeholder='12" Vinyl' dir="auto" />
-            </label>
-          </div>
+          {extra}
         </div>
       </div>
-      {extra}
+      <Extras>
+      <div className="row">
+        <label>
+          שנה
+          <input
+            inputMode="numeric"
+            value={d.year ?? ''}
+            onChange={(e) => {
+              const n = parseInt(e.target.value.replace(/\D/g, '').slice(0, 4), 10)
+              set('year', Number.isFinite(n) ? n : undefined)
+            }}
+            dir="ltr"
+          />
+        </label>
+        <label>
+          פורמט
+          <input value={d.format ?? ''} onChange={(e) => set('format', e.target.value)} placeholder="למשל: LP" dir="auto" />
+        </label>
+      </div>
       <label>
         ז'אנרים (מופרדים בפסיק)
         <input list="genre-options" value={genres} onChange={(e) => setGenres(e.target.value)} placeholder="Rock, Jazz" dir="auto" />
@@ -143,6 +149,7 @@ export function RecordForm({
         הערות
         <textarea rows={2} value={d.notes ?? ''} onChange={(e) => set('notes', e.target.value)} placeholder="מצב התקליט, מאיפה קניתי, חתום…" />
       </label>
+      </Extras>
       <div className="form-actions">
         <button type="button" className="btn ghost" onClick={onCancel}>
           ביטול
@@ -154,3 +161,12 @@ export function RecordForm({
     </form>
   )
 }
+
+const Plain = ({ children }: { children: React.ReactNode }) => <>{children}</>
+
+const FoldedExtras = ({ children }: { children: React.ReactNode }) => (
+  <details className="more-fields">
+    <summary>פרטים נוספים: שנה, לייבל, ברקוד, שירים</summary>
+    <div className="more-fields-body">{children}</div>
+  </details>
+)
