@@ -67,6 +67,10 @@ export function Menu({
           {item('שחזור מגיבוי…', () => file.current?.click())}
           <hr />
           {item(isLocal ? 'התחברות עם Google' : 'התנתקות', onLogout)}
+          <div className="menu-links">
+            <a href="/privacy.html">פרטיות</a>
+            <a href="/terms.html">תנאי שימוש</a>
+          </div>
         </div>
       )}
       <input
