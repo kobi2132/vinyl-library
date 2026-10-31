@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { RecordDraft, Track } from '../types'
 import { Cover } from './Cover'
 
@@ -34,6 +34,7 @@ export function RecordForm({
   saveLabel = 'שמירה',
   extra,
   foldExtras = false,
+  onDirtyChange,
 }: {
   initial: RecordDraft
   genreOptions: string[]
@@ -43,11 +44,17 @@ export function RecordForm({
   extra?: React.ReactNode
   /** Adding by hand: only artist and album up front, the rest folded under "more details". */
   foldExtras?: boolean
+  /** Told whether anything was typed or changed, so closing can ask before throwing it away */
+  onDirtyChange?: (dirty: boolean) => void
 }) {
   const [d, setD] = useState<RecordDraft>(initial)
   const [genres, setGenres] = useState(initial.genres.join(', '))
   const [tracks, setTracks] = useState(tracksToText(initial.tracks))
   const set = <K extends keyof RecordDraft>(k: K, v: RecordDraft[K]) => setD((p) => ({ ...p, [k]: v }))
+  const dirty = JSON.stringify(d) !== JSON.stringify(initial) || genres !== initial.genres.join(', ') || tracks !== tracksToText(initial.tracks)
+  useEffect(() => {
+    onDirtyChange?.(dirty)
+  }, [dirty, onDirtyChange])
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { GoogleUser } from '../lib/google'
 import { DotsIcon } from './Icons'
+import { useBack } from '../lib/back'
 
 export function Menu({
   user,
@@ -28,6 +29,7 @@ export function Menu({
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const file = useRef<HTMLInputElement>(null)
+  useBack(open, () => setOpen(false))
   useEffect(() => {
     if (!open) return
     const close = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false)

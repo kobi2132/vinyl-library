@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { exitApp, useBack } from './lib/back'
 import { useLibrary, type SyncStatus } from './lib/useLibrary'
 import { preloadGoogle } from './lib/google'
 import { decadeOf, initialOf, matches, sortRecords, SORT_LABELS, type SortKey } from './lib/format'
@@ -88,6 +89,23 @@ export default function App() {
       window.removeEventListener('afterprint', done)
     }
   }, [printing])
+  // Back on the library: first clear a search or filter, then "press again to exit" instead of closing at once
+  const lastBack = useRef(0)
+  useBack(Boolean(lib.mode), () => {
+    if (query || genre || decade) {
+      setQuery('')
+      setGenre('')
+      setDecade('')
+      return true
+    }
+    if (Date.now() - lastBack.current < 2000) {
+      exitApp()
+      return
+    }
+    lastBack.current = Date.now()
+    say('לחצו שוב על "חזור" כדי לצאת')
+    return true
+  })
   useEffect(() => {
     if (!toast) return
     const t = setTimeout(() => setToast(null), toast.undo ? 6000 : 2600)

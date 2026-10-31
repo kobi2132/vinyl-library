@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { RecordDraft, VinylRecord } from '../types'
 import { Modal } from './Modal'
 import { Cover } from './Cover'
@@ -23,15 +23,25 @@ export function RecordDetail({
   const [editing, setEditing] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
+  const dirty = useRef(false)
+  // leaving the edit form (Back, X or Cancel) returns to the record page; ask first if something was changed
+  const leaveEdit = () => {
+    if (dirty.current && !confirm('לצאת בלי לשמור את השינויים?')) return true
+    dirty.current = false
+    setEditing(false)
+  }
+
   if (editing) {
     return (
-      <Modal title="עריכת תקליט" onClose={() => setEditing(false)}>
+      <Modal key="edit" title="עריכת תקליט" onClose={() => void leaveEdit()} onBack={leaveEdit}>
         <RecordForm
           initial={record}
           genreOptions={genreOptions}
-          onCancel={() => setEditing(false)}
+          onDirtyChange={(v) => (dirty.current = v)}
+          onCancel={() => void leaveEdit()}
           onSave={(d) => {
             onUpdate(d)
+            dirty.current = false
             setEditing(false)
           }}
         />
@@ -53,7 +63,16 @@ export function RecordDetail({
 
   return (
     <Modal
+      key="detail"
       title={record.title}
+      onBack={() => {
+        // Back first closes the delete question, then the record page
+        if (confirmDelete) {
+          setConfirmDelete(false)
+          return true
+        }
+        onClose()
+      }}
       hideTitle
       onClose={onClose}
       wide

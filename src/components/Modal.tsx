@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { CloseIcon } from './Icons'
+import { useBack } from '../lib/back'
 
 export function Modal({
   title,
@@ -8,6 +9,7 @@ export function Modal({
   wide,
   actions,
   hideTitle,
+  onBack,
 }: {
   title: string
   onClose: () => void
@@ -17,7 +19,10 @@ export function Modal({
   actions?: ReactNode
   /** Keep the title for screen readers only (when the page shows it large anyway) */
   hideTitle?: boolean
+  /** The phone's Back button; closes the sheet unless given. Return true to stay open. */
+  onBack?: () => boolean | void
 }) {
+  useBack(true, onBack ?? onClose)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     document.addEventListener('keydown', onKey)
