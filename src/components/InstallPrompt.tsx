@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useBack } from '../lib/back'
 import { canPromptInstall, isIosSafari, onInstallChange, platform, promptInstall, snoozeInstall } from '../lib/install'
 
 const ShareIcon = () => (
@@ -30,6 +31,7 @@ export function InstallPrompt({ onClose }: { onClose: () => void }) {
     snoozeInstall()
     onClose()
   }
+  useBack(true, later)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && later()
     document.addEventListener('keydown', onKey)

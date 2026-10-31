@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { RecordDraft, VinylRecord } from '../types'
 import { lookupBarcode as findByBarcode, lookupCatno, lookupDetails, lookupQuery, lookupText, type Candidate } from '../lib/lookup'
 import { Modal } from './Modal'
@@ -36,36 +36,78 @@ export function AddFlow({
   onClose: () => void
   onOpenExisting: (r: VinylRecord) => void
 }) {
-  const [step, setStep] = useState<Step>(
+  const [step, setStepNow] = useState<Step>(
     start === 'scan' ? { kind: 'scan' } : start === 'manual' ? { kind: 'form', draft: blankDraft() } : { kind: 'searching', label: `מחפש את "${start.query}"…` },
   )
+  // the steps Back returns to; search spinners and "not found" / "already have it" answers are passing screens and are skipped
+  const [prev, setPrev] = useState<Step[]>([])
+  // bumped on every step change, so a search that finishes after Back was pressed is ignored
+  const seq = useRef(0)
+  const formDirty = useRef(false)
+  const setStep = (next: Step, remember: Step | null = step) => {
+    seq.current++
+    formDirty.current = false
+    setPrev((p) => {
+      const kept = remember && (remember.kind === 'scan' || remember.kind === 'pick' || remember.kind === 'form') ? [...p, remember] : p
+      // returning to a step that is already behind (e.g. "scan again") is the same as going back to it
+      const i = kept.findIndex((s) => s.kind === next.kind)
+      return i < 0 ? kept : kept.slice(0, i)
+    })
+    setStepNow(next)
+  }
+  /** Shows the result of a search, unless the person already went back from it. */
+  const settle = (ticket: number, next: Step) => {
+    if (seq.current === ticket) setStep(next, null)
+  }
+
+  // X leaves the whole flow
+  const close = () => {
+    if (formDirty.current && !confirm('לצאת בלי לשמור את מה שהוקלד?')) return
+    formDirty.current = false
+    onClose()
+  }
+
+  // Back (and Cancel): one step back, or out of the flow when there is nothing behind
+  const goBack = () => {
+    if (step.kind === 'form' && formDirty.current && !confirm('לצאת בלי לשמור את מה שהוקלד?')) return true
+    setError(null)
+    setBusyId(null)
+    const last = prev[prev.length - 1]
+    if (!last) {
+      formDirty.current = false
+      onClose()
+      return
+    }
+    setStep(last, null)
+    return true
+  }
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [scanMode, setScanMode] = useState<'barcode' | 'catno'>('barcode')
 
-  const lookupBarcode = useCallback(async (code: string) => {
+  const lookupBarcode = async (code: string) => {
     setError(null)
     setStep({ kind: 'searching', label: `מחפש את ${code}…` })
+    const ticket = seq.current
     try {
       const items = await findByBarcode(code)
-      if (items.length === 0) setStep({ kind: 'notfound', barcode: code })
-      else setStep({ kind: 'pick', items, barcode: code })
+      settle(ticket, items.length === 0 ? { kind: 'notfound', barcode: code } : { kind: 'pick', items, barcode: code })
     } catch (e) {
-      setError((e as Error).message)
-      setStep({ kind: 'notfound', barcode: code })
+      if (seq.current === ticket) setError((e as Error).message)
+      settle(ticket, { kind: 'notfound', barcode: code })
     }
-  }, [])
+  }
 
   const searchCatno = async (catno: string) => {
     setError(null)
     setStep({ kind: 'searching', label: `מחפש את ${catno}…` })
+    const ticket = seq.current
     try {
       const items = await lookupCatno(catno)
-      if (items.length === 0) setStep({ kind: 'catno-notfound', catno })
-      else setStep({ kind: 'pick', items })
+      settle(ticket, items.length === 0 ? { kind: 'catno-notfound', catno } : { kind: 'pick', items })
     } catch (e) {
-      setError((e as Error).message)
-      setStep({ kind: 'catno-notfound', catno })
+      if (seq.current === ticket) setError((e as Error).message)
+      settle(ticket, { kind: 'catno-notfound', catno })
     }
   }
 
@@ -75,44 +117,55 @@ export function AddFlow({
     if (typeof start !== 'object' || queried.current) return
     queried.current = true
     const q = start.query
+    const ticket = seq.current
+    const show = (next: Step) => {
+      if (seq.current !== ticket) return
+      seq.current++
+      setStepNow(next)
+    }
     lookupQuery(q)
-      .then((items) => setStep(items.length ? { kind: 'pick', items } : { kind: 'query-notfound', query: q }))
+      .then((items) => show(items.length ? { kind: 'pick', items } : { kind: 'query-notfound', query: q }))
       .catch((e: Error) => {
-        setError(e.message)
-        setStep({ kind: 'query-notfound', query: q })
+        if (seq.current === ticket) setError(e.message)
+        show({ kind: 'query-notfound', query: q })
       })
   }, [start])
 
   const pick = async (c: Candidate, barcode?: string) => {
     setBusyId(c.source + c.id)
     setError(null)
+    const ticket = seq.current
     try {
       const draft = await lookupDetails(c)
+      if (seq.current !== ticket) return // Back was pressed while the details were loading
       if (barcode && !draft.barcode) draft.barcode = barcode
       // add straight away; any edits can be made later from the record's page
       const existing = duplicate(draft)
       if (existing) setStep({ kind: 'duplicate', draft, existing })
       else onSave(draft)
     } catch (e) {
-      setError((e as Error).message)
+      if (seq.current === ticket) setError((e as Error).message)
     } finally {
-      setBusyId(null)
+      if (seq.current === ticket) setBusyId(null)
     }
   }
 
   const textSearch = async (draft: RecordDraft) => {
     setError(null)
-    setStep({ kind: 'searching', label: 'מחפש…' })
+    // Back from the results returns to the form with what was typed
+    setStep({ kind: 'searching', label: 'מחפש…' }, { kind: 'form', draft })
+    const ticket = seq.current
+    const toForm = () => settle(ticket, { kind: 'form', draft })
     try {
       const items = await lookupText(draft.artist, draft.title)
-      if (items.length) setStep({ kind: 'pick', items })
+      if (items.length) settle(ticket, { kind: 'pick', items })
       else {
-        setError('לא נמצאו תוצאות. אפשר למלא את הפרטים ידנית.')
-        setStep({ kind: 'form', draft })
+        if (seq.current === ticket) setError('לא נמצאו תוצאות. אפשר למלא את הפרטים ידנית.')
+        toForm()
       }
     } catch (e) {
-      setError((e as Error).message)
-      setStep({ kind: 'form', draft })
+      if (seq.current === ticket) setError((e as Error).message)
+      toForm()
     }
   }
 
@@ -147,7 +200,7 @@ export function AddFlow({
                   : 'מחפש…'
 
   return (
-    <Modal title={title} onClose={onClose}>
+    <Modal title={title} onClose={close} onBack={goBack}>
       {error && <p className="notice error">{error}</p>}
 
       {step.kind === 'scan' && (
@@ -262,7 +315,8 @@ export function AddFlow({
           onOpenExisting={onOpenExisting}
           onSearch={textSearch}
           onSave={onSave}
-          onCancel={onClose}
+          onCancel={() => void goBack()}
+          onDirtyChange={(v) => (formDirty.current = v)}
         />
       )}
     </Modal>
@@ -277,6 +331,7 @@ function FormStep({
   onSearch,
   onSave,
   onCancel,
+  onDirtyChange,
 }: {
   draft: RecordDraft
   genreOptions: string[]
@@ -285,6 +340,7 @@ function FormStep({
   onSearch: (d: RecordDraft) => void
   onSave: (d: RecordDraft) => void
   onCancel: () => void
+  onDirtyChange: (dirty: boolean) => void
 }) {
   const [pending, setPending] = useState<RecordDraft | null>(null)
   const dup = draft.artist || pending ? duplicate(pending ?? draft) : undefined
@@ -317,6 +373,7 @@ function FormStep({
         genreOptions={genreOptions}
         saveLabel="הוספה לספרייה"
         onCancel={onCancel}
+        onDirtyChange={onDirtyChange}
         onSave={(d) => (duplicate(d) ? setPending(d) : onSave(d))}
         foldExtras={!fromLookup}
         extra={!fromLookup && <SearchHelper onSearch={onSearch} />}
