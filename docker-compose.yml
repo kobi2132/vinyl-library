@@ -1,0 +1,14 @@
+# Runs on the server from the `deploy` branch (built site in ./site).
+services:
+  vinyl:
+    image: nginx:alpine
+    container_name: vinyl
+    restart: unless-stopped
+    volumes:
+      - ./site:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks: [web]
+
+networks:
+  web:
+    external: true
