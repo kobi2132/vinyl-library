@@ -1,25 +1,18 @@
 import { isConfigured } from '../lib/google'
 
-const FEATURES = [
-  { icon: '▥', title: 'סריקת ברקוד', text: 'מכוונים את המצלמה לגב העטיפה, והאמן, האלבום, השנה, הלייבל, רשימת השירים והעטיפה נכנסים לבד.' },
-  { icon: '✎', title: 'הוספה ידנית', text: 'אין ברקוד? מקלידים אמן ושם אלבום ומקבלים את הפרטים, או ממלאים הכל בעצמכם.' },
-  { icon: '⌕', title: 'חיפוש ומיון', text: "חיפוש לפי אמן, אלבום או שיר. מיון לפי א-ב, שנה או תאריך הוספה, וסינון לפי ז'אנר ועשור." },
-  { icon: '☁', title: 'שמור בדרייב שלך', text: 'הספרייה נשמרת בתיקייה מוסתרת של האפליקציה ב-Google Drive שלכם ומסתנכרנת בין הטלפון למחשב.' },
-  { icon: '⇩', title: 'ייצוא לאקסל ו-PDF', text: 'רשימה מסודרת של האוסף להדפסה, לביטוח או לשיתוף עם חברים.' },
-  { icon: '✈', title: 'עובדת גם בלי אינטרנט', text: 'מתקינים על מסך הבית כמו אפליקציה, ומשתמשים בה גם בחנות התקליטים בלי קליטה.' },
-]
-
 export function Welcome({ onGoogle, onLocal, error }: { onGoogle: () => void; onLocal: () => void; error: string | null }) {
   const ready = isConfigured()
   return (
     <div className="landing">
-      <header className="hero">
+      <header className="hero hero-clean">
         <img className="hero-logo" src="/logo.svg" alt="" width="112" height="112" />
         <h1>ספריית התקליטים שלי</h1>
         <p className="hero-en" lang="en" dir="ltr">
           My Vinyl Library
         </p>
-        <p className="lead">סורקים את הברקוד, והתקליט נכנס לאוסף עם כל הפרטים. כל האוסף שלכם במקום אחד, מסודר, בטלפון ובמחשב.</p>
+        <p className="lead">
+          סורקים את הברקוד, והתקליט נכנס לאוסף עם כל הפרטים. <a href="/about.html">מה זה ואיך זה עובד?</a>
+        </p>
         {error && <p className="notice error">{error}</p>}
         <button className="btn google" onClick={onGoogle} disabled={!ready}>
           <svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true">
@@ -35,27 +28,6 @@ export function Welcome({ onGoogle, onLocal, error }: { onGoogle: () => void; on
           לנסות בלי חשבון (נשמר רק במכשיר הזה)
         </button>
       </header>
-
-      <section className="features" aria-label="מה אפשר לעשות">
-        {FEATURES.map((f) => (
-          <article key={f.title} className="feature">
-            <span className="feature-icon" aria-hidden="true">
-              {f.icon}
-            </span>
-            <h2>{f.title}</h2>
-            <p>{f.text}</p>
-          </article>
-        ))}
-      </section>
-
-      <section className="data-note">
-        <h2>מה קורה עם המידע שלכם</h2>
-        <p>
-          כשמתחברים עם Google, האפליקציה מבקשת שתי הרשאות בלבד: את השם והמייל שלכם, כדי להראות לאיזה חשבון אתם מחוברים, וגישה לתיקייה המוסתרת של
-          האפליקציה ב-Google Drive, כדי לשמור שם את רשימת התקליטים ולסנכרן בין המכשירים. לאפליקציה אין גישה לשום קובץ אחר ב-Drive. אין לנו שרת ששומר
-          את הספרייה שלכם, אין פרסומות ואין מעקב. הפרטים המלאים ב<a href="/privacy.html">מדיניות הפרטיות</a>.
-        </p>
-      </section>
 
       <footer className="landing-foot">
         <a href="/about.html">אודות</a>

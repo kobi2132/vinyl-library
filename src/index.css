@@ -76,6 +76,7 @@ select.active { border-color: var(--accent); }
 .data-note { margin: 36px 0 0; padding: 22px 24px; border-radius: var(--radius); border: 1px solid var(--line); background: linear-gradient(135deg, var(--surface), var(--bg-2)); }
 .data-note h2 { font-size: 1.15rem; margin-bottom: 8px; }
 .data-note p { margin: 0; color: var(--muted); line-height: 1.75; }
+.hero-clean { min-height: calc(100dvh - 90px); }
 .landing-foot { display: flex; flex-wrap: wrap; gap: 8px 22px; justify-content: center; padding: 36px 0 max(36px, env(safe-area-inset-bottom)); font-size: 0.92rem; }
 .landing-foot a { color: var(--muted); text-decoration: none; }
 .landing-foot a:hover { color: var(--text); }
