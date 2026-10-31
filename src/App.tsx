@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLibrary, type SyncStatus } from './lib/useLibrary'
 import { preloadGoogle } from './lib/google'
 import { decadeOf, initialOf, matches, sortRecords, SORT_LABELS, type SortKey } from './lib/format'
-import { exportCsv, exportJson } from './lib/exporters'
+import { exportExcel, exportJson } from './lib/exporters'
+import { PrintSheet } from './components/PrintSheet'
 import { parseImport } from './lib/merge'
 import type { VinylRecord } from './types'
 import { Welcome } from './components/Welcome'
@@ -50,8 +51,20 @@ export default function App() {
   const [adding, setAdding] = useState<'scan' | 'manual' | null>(null)
   const [openId, setOpenId] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [printing, setPrinting] = useState(false)
 
   useEffect(preloadGoogle, [])
+  useEffect(() => {
+    if (!printing) return
+    const done = () => setPrinting(false)
+    window.addEventListener('afterprint', done)
+    // let covers start loading before the print dialog takes a snapshot
+    const t = setTimeout(() => window.print(), 400)
+    return () => {
+      clearTimeout(t)
+      window.removeEventListener('afterprint', done)
+    }
+  }, [printing])
   useEffect(() => {
     if (!toast) return
     const t = setTimeout(() => setToast(null), 2600)
@@ -149,7 +162,13 @@ export default function App() {
             user={lib.user}
             isLocal={lib.mode === 'local'}
             onExport={() => exportJson(lib.library)}
-            onExportCsv={() => exportCsv(lib.library)}
+            onExportExcel={() =>
+              exportExcel(shown)
+                .then(() => setToast('קובץ האקסל ירד'))
+                .catch((e: Error) => setToast(`הייצוא נכשל: ${e.message}`))
+            }
+            onExportPdf={() => setPrinting(true)}
+            exportNote={filtering ? `הייצוא כולל רק את ${shown.length} התקליטים שמוצגים כרגע` : undefined}
             onImport={importFile}
             onSync={lib.syncNow}
             onLogout={logout}
@@ -309,6 +328,14 @@ export default function App() {
       )}
 
       {toast && <div className="toast">{toast}</div>}
+      {printing && (
+        <PrintSheet
+          records={shown}
+          subtitle={[`ממוין לפי ${SORT_LABELS[sort].replace(/ \(.*\)/, '')}`, genre, decade && `שנות ה-${decade}`, query && `חיפוש: ${query}`]
+            .filter(Boolean)
+            .join(' · ')}
+        />
+      )}
     </div>
   )
 }

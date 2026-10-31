@@ -5,7 +5,9 @@ export function Menu({
   user,
   isLocal,
   onExport,
-  onExportCsv,
+  onExportExcel,
+  onExportPdf,
+  exportNote,
   onImport,
   onSync,
   onLogout,
@@ -13,7 +15,9 @@ export function Menu({
   user: GoogleUser | null
   isLocal: boolean
   onExport: () => void
-  onExportCsv: () => void
+  onExportExcel: () => void
+  onExportPdf: () => void
+  exportNote?: string
   onImport: (f: File) => void
   onSync: () => void
   onLogout: () => void
@@ -55,8 +59,11 @@ export function Menu({
           )}
           {isLocal && <div className="menu-user"><small>הספרייה שמורה רק במכשיר הזה</small></div>}
           {!isLocal && item('סנכרון עכשיו', onSync)}
+          {item('ייצוא לאקסל', onExportExcel)}
+          {item('ייצוא ל-PDF / הדפסה', onExportPdf)}
+          {exportNote && <div className="menu-note">{exportNote}</div>}
+          <hr />
           {item('גיבוי: הורדת קובץ JSON', onExport)}
-          {item('ייצוא לאקסל (CSV)', onExportCsv)}
           {item('שחזור מגיבוי…', () => file.current?.click())}
           <hr />
           {item(isLocal ? 'התחברות עם Google' : 'התנתקות', onLogout)}
