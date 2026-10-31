@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ספריית התקליטים שלי · My Vinyl Library</title>
+  <meta name="description" content="ניהול אוסף תקליטים אישי: סורקים ברקוד והתקליט נכנס עם כל הפרטים. הספרייה נשמרת ב-Google Drive שלך." />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/legal.css" />
+  <style>
+    .hero { text-align: center; padding: 24px 0 8px; }
+    .hero img { width: 112px; height: 112px; }
+    .hero h1 { font-size: 2.4rem; margin-top: 14px; }
+    .hero .en { color: var(--accent-2); margin: 0; }
+    .lead { color: var(--muted); font-size: 1.1rem; text-align: center; max-width: 560px; margin: 16px auto 0; }
+    .cta { text-align: center; margin: 22px 0 8px; }
+    .cta a { display: inline-block; background: var(--accent); color: #fff; text-decoration: none; font-weight: 700; padding: 12px 26px; border-radius: 999px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 8px; }
+    .grid .box h3 { margin: 0 0 4px; font-size: 1.05rem; }
+    .grid .box p { margin: 0; color: var(--muted); }
+  </style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <img src="/logo.svg" alt="My Vinyl Library logo" />
+    <h1>ספריית התקליטים שלי</h1>
+    <p class="en" lang="en" dir="ltr">My Vinyl Library</p>
+  </div>
+  <p class="lead">אפליקציית ווב חינמית לניהול אוסף תקליטים אישי. סורקים את הברקוד שעל גב העטיפה, והתקליט נכנס לאוסף עם כל הפרטים.</p>
+  <p class="cta"><a href="/">לפתיחת האפליקציה</a></p>
+
+  <h2>מה אפשר לעשות</h2>
+  <div class="grid">
+    <div class="box"><h3>סריקת ברקוד</h3><p>המצלמה קוראת את הברקוד, והאמן, האלבום, השנה, הלייבל, רשימת השירים והעטיפה נכנסים לבד.</p></div>
+    <div class="box"><h3>הוספה ידנית</h3><p>מקלידים אמן ושם אלבום ומקבלים את הפרטים, או ממלאים הכל בעצמכם.</p></div>
+    <div class="box"><h3>חיפוש ומיון</h3><p>חיפוש לפי אמן, אלבום או שיר, מיון לפי א-ב, שנה או תאריך הוספה, וסינון לפי ז'אנר ועשור.</p></div>
+    <div class="box"><h3>ייצוא</h3><p>ייצוא האוסף לאקסל ול-PDF, וגיבוי לקובץ.</p></div>
+  </div>
+
+  <h2>למה האפליקציה מבקשת גישה לחשבון Google</h2>
+  <p>ההתחברות עם Google היא אופציונלית, ואפשר להשתמש באפליקציה גם בלעדיה. מי שמתחבר נותן שתי הרשאות בלבד:</p>
+  <ul>
+    <li><strong>שם, מייל ותמונת פרופיל</strong>: כדי להציג לאיזה חשבון אתם מחוברים.</li>
+    <li><strong>תיקיית האפליקציה המוסתרת ב-Google Drive</strong> (<code dir="ltr">drive.appdata</code>): כדי לשמור שם קובץ אחד עם רשימת התקליטים שלכם, לגבות אותו ולסנכרן בין המכשירים. לאפליקציה אין גישה לשום קובץ אחר ב-Drive.</li>
+  </ul>
+  <p>המידע עובר ישירות מהדפדפן שלכם אל Google. אין לנו שרת ששומר את הספרייה או את פרטי החשבון, אין פרסומות ואין מעקב. הפרטים המלאים ב<a href="/privacy.html">מדיניות הפרטיות</a>.</p>
+
+  <hr />
+
+  <section lang="en" id="en">
+    <h1>My Vinyl Library</h1>
+    <p>A free web app for managing your personal vinyl record collection. Scan the barcode on the back of a sleeve and the record is added with all its details: artist, album, year, label, track list and cover art (from the open MusicBrainz database). You can also add records by hand, search, sort by name, year or date added, filter by genre and decade, and export your collection to Excel or PDF.</p>
+    <h2>Why the app asks for access to your Google account</h2>
+    <p>Signing in with Google is optional; the app also works without an account. If you sign in, the app requests only:</p>
+    <ul>
+      <li><strong>Your name, email address and profile picture</strong>, to show which account is connected.</li>
+      <li><strong>The app's hidden folder in your Google Drive</strong> (<code>drive.appdata</code>), to save a single file with your list of records, back it up and sync it between your devices. The app cannot access any other file in your Drive.</li>
+    </ul>
+    <p>Data goes directly from your browser to Google. We run no server that stores your library or account details, and there are no ads or tracking. See the <a href="/privacy.html#en">Privacy Policy</a> and <a href="/terms.html#en">Terms of Use</a>.</p>
+  </section>
+
+  <footer>
+    <a href="/">לאפליקציה</a>
+    <a href="/privacy.html">מדיניות פרטיות</a>
+    <a href="/terms.html">תנאי שימוש</a>
+    <a href="https://github.com/kobi2132/vinyl-library/issues">יצירת קשר</a>
+  </footer>
+</main>
+</body>
+</html>

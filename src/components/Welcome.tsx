@@ -58,6 +58,7 @@ export function Welcome({ onGoogle, onLocal, error }: { onGoogle: () => void; on
       </section>
 
       <footer className="landing-foot">
+        <a href="/about.html">אודות</a>
         <a href="/privacy.html">מדיניות פרטיות</a>
         <a href="/terms.html">תנאי שימוש</a>
         <a href="https://github.com/kobi2132/vinyl-library/issues" target="_blank" rel="noopener">יצירת קשר</a>

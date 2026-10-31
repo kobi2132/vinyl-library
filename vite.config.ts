@@ -9,7 +9,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'logo.svg', 'privacy.html', 'terms.html', 'legal.css'],
+      includeAssets: ['favicon.svg', 'logo.svg', 'about.html', 'privacy.html', 'terms.html', 'legal.css'],
       manifest: {
         name: 'ספריית התקליטים שלי',
         short_name: 'תקליטים',
