@@ -10,6 +10,10 @@ my-vinyl-library.jacob-apps.co.il {
 			header_up Authorization "Discogs token=PUT_DISCOGS_TOKEN_HERE"
 			header_up User-Agent "MyVinylLibrary/1.0 +https://my-vinyl-library.jacob-apps.co.il"
 			header_up -Cookie
+			header_up Host api.discogs.com
+			header_up -X-Forwarded-Host
+			header_up -X-Forwarded-For
+			header_up -X-Forwarded-Proto
 		}
 	}
 	handle {
