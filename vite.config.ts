@@ -11,8 +11,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'logo.svg', 'about.html', 'privacy.html', 'terms.html', 'legal.css'],
       manifest: {
-        name: 'ספריית התקליטים שלי',
-        short_name: 'תקליטים',
+        name: 'My Vinyl Library',
+        short_name: 'My Vinyl Library',
         description: 'ניהול אוסף תקליטים אישי עם סריקת ברקוד',
         lang: 'he',
         dir: 'rtl',
