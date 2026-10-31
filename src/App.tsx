@@ -11,6 +11,8 @@ import { Menu } from './components/Menu'
 import { Cover } from './components/Cover'
 import { AddFlow } from './components/AddFlow'
 import { RecordDetail } from './components/RecordDetail'
+import { InstallPrompt } from './components/InstallPrompt'
+import { shouldInvite } from './lib/install'
 
 type View = 'grid' | 'list'
 
@@ -52,8 +54,15 @@ export default function App() {
   const [openId, setOpenId] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [printing, setPrinting] = useState(false)
+  const [inviteInstall, setInviteInstall] = useState(false)
 
   useEffect(preloadGoogle, [])
+  // right after sign-in, invite phone users to install the app (once per visit)
+  useEffect(() => {
+    if (!lib.mode || !shouldInvite()) return
+    const t = setTimeout(() => setInviteInstall(true), 700)
+    return () => clearTimeout(t)
+  }, [lib.mode])
   useEffect(() => {
     if (!printing) return
     const done = () => setPrinting(false)
@@ -327,6 +336,7 @@ export default function App() {
         />
       )}
 
+      {inviteInstall && <InstallPrompt onClose={() => setInviteInstall(false)} />}
       {toast && <div className="toast">{toast}</div>}
       {printing && (
         <PrintSheet

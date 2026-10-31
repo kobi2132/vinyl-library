@@ -274,3 +274,17 @@ select.active { border-color: var(--accent); }
 }
 .src-badge { font-size: 0.68rem; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; flex: none; }
 .src-discogs { color: var(--accent-2); }
+
+/* ---------- install invitation ---------- */
+.install-sheet { max-width: 420px; padding: 26px 22px max(22px, env(safe-area-inset-bottom)); gap: 18px; overflow-y: auto; }
+.install-hero { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.install-hero img { border-radius: 18px; box-shadow: var(--shadow); }
+.install-hero h2 { font-size: 1.3rem; }
+.install-hero p { margin: 0; color: var(--muted); line-height: 1.55; }
+.install-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; counter-reset: step; }
+.install-steps li { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; line-height: 1.45; counter-increment: step; }
+.install-steps li::before { content: counter(step); flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 0.8rem; font-weight: 700; display: grid; place-items: center; }
+.step-icon { flex: none; width: 36px; height: 36px; border-radius: 10px; background: var(--surface-2); color: #4ea1ff; display: grid; place-items: center; }
+.step-icon.step-text { width: auto; padding: 0 10px; font-weight: 700; font-size: 0.9rem; }
+.install-actions { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.install-note { margin: 0; font-size: 0.92rem; }
