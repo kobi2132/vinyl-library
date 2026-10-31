@@ -1,4 +1,4 @@
-# Runs on the server from the `deploy` branch (built site in ./site).
+# Runs on the server from the `deploy` branch (built site in ./site, API code in ./server).
 services:
   vinyl:
     image: nginx:alpine
@@ -7,6 +7,23 @@ services:
     volumes:
       - ./site:/usr/share/nginx/html:ro
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks: [web]
+
+  # contact messages, anonymous usage stats and the developer page (Caddy: /api/app/*)
+  vinyl-api:
+    image: node:22-alpine
+    container_name: vinyl-api
+    restart: unless-stopped
+    working_dir: /app
+    # --watch restarts the service by itself when the deploy branch brings a new version
+    command: ["node", "--watch", "--disable-warning=ExperimentalWarning", "server.mjs"]
+    environment:
+      ADMIN_EMAIL: kobi2132@gmail.com
+      DATA_DIR: /data
+    volumes:
+      - ./server:/app:ro
+      # the database lives here; it is not in git, so updates never touch it
+      - ./data:/data
     networks: [web]
 
 networks:

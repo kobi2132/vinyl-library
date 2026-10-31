@@ -16,6 +16,10 @@ my-vinyl-library.jacob-apps.co.il {
 			header_up -X-Forwarded-Proto
 		}
 	}
+	# contact messages, usage stats and the developer page
+	handle /api/app/* {
+		reverse_proxy vinyl-api:8080
+	}
 	handle {
 		reverse_proxy vinyl:80
 	}

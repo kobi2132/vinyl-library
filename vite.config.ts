@@ -1,10 +1,31 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { execSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
+
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }
+
+const sha = (() => {
+  if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA.slice(0, 7)
+  try {
+    return execSync('git rev-parse --short HEAD').toString().trim()
+  } catch {
+    return 'dev'
+  }
+})()
 
 // Served from https://my-vinyl-library.jacob-apps.co.il/
 export default defineConfig({
   base: '/',
+  // local development: the API runs with `node server/server.mjs` (see server/README.md)
+  server: { proxy: { '/api/app': 'http://localhost:8080' } },
+  preview: { proxy: { '/api/app': 'http://localhost:8080' } },
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+    __BUILD_SHA__: JSON.stringify(sha),
+  },
   plugins: [
     react(),
     VitePWA({
