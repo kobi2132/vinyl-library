@@ -12,6 +12,7 @@ type Step =
   | { kind: 'pick'; items: Candidate[]; barcode?: string }
   | { kind: 'notfound'; barcode: string }
   | { kind: 'form'; draft: RecordDraft }
+  | { kind: 'duplicate'; draft: RecordDraft; existing: VinylRecord }
 
 export function AddFlow({
   start,
@@ -31,7 +32,6 @@ export function AddFlow({
   const [step, setStep] = useState<Step>(start === 'scan' ? { kind: 'scan' } : { kind: 'form', draft: blankDraft() })
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
-  const [formKey, setFormKey] = useState(0)
 
   const lookupBarcode = useCallback(async (code: string) => {
     setError(null)
@@ -52,8 +52,10 @@ export function AddFlow({
     try {
       const draft = await lookupDetails(c)
       if (barcode && !draft.barcode) draft.barcode = barcode
-      setFormKey((k) => k + 1)
-      setStep({ kind: 'form', draft })
+      // add straight away; any edits can be made later from the record's page
+      const existing = duplicate(draft)
+      if (existing) setStep({ kind: 'duplicate', draft, existing })
+      else onSave(draft)
     } catch (e) {
       setError((e as Error).message)
     } finally {
@@ -87,7 +89,7 @@ export function AddFlow({
     )
 
   const title =
-    step.kind === 'scan' ? 'סריקת ברקוד' : step.kind === 'pick' ? 'איזו הוצאה יש לך?' : step.kind === 'form' ? 'פרטי התקליט' : 'חיפוש'
+    step.kind === 'scan' ? 'סריקת ברקוד' : step.kind === 'pick' ? 'איזו הוצאה יש לך?' : step.kind === 'form' ? 'פרטי התקליט' : step.kind === 'duplicate' ? 'כבר בספרייה' : 'חיפוש'
 
   return (
     <Modal title={title} onClose={onClose}>
@@ -105,7 +107,7 @@ export function AddFlow({
       {step.kind === 'pick' && (
         <>
           <p className="hint">
-            {step.items.length === 1 ? 'נמצאה הוצאה אחת. לחץ כדי להמשיך.' : `נמצאו ${step.items.length} הוצאות. בחר את זו שזהה לשלך.`}
+            {step.items.length === 1 ? 'נמצאה הוצאה אחת. לחץ עליה כדי להוסיף לספרייה.' : `נמצאו ${step.items.length} הוצאות. לחץ על זו שזהה לשלך והיא תתווסף לספרייה.`}
           </p>
           <CandidateList items={step.items} busyId={busyId} onPick={(c) => pick(c, step.barcode)} />
           <div className="form-actions">
@@ -137,9 +139,24 @@ export function AddFlow({
         </div>
       )}
 
+      {step.kind === 'duplicate' && (
+        <div className="center-msg">
+          <p>
+            כבר יש לך את <strong>{step.existing.title}</strong> של {step.existing.artist} בספרייה.
+          </p>
+          <div className="form-actions">
+            <button className="btn ghost" onClick={() => onOpenExisting(step.existing)}>
+              הצג את הקיים
+            </button>
+            <button className="btn primary" onClick={() => onSave(step.draft)}>
+              הוסף בכל זאת (עותק נוסף)
+            </button>
+          </div>
+        </div>
+      )}
+
       {step.kind === 'form' && (
         <FormStep
-          key={formKey}
           draft={step.draft}
           genreOptions={genreOptions}
           duplicate={duplicate}
