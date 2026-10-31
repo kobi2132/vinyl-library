@@ -12,7 +12,7 @@ export default defineConfig({
       includeAssets: ['favicon.svg', 'logo.svg', 'about.html', 'privacy.html', 'terms.html', 'legal.css'],
       manifest: {
         name: 'My Vinyl Library',
-        short_name: 'My Vinyl Library',
+        short_name: 'My Vinyl',
         description: 'ניהול אוסף תקליטים אישי עם סריקת ברקוד',
         lang: 'he',
         dir: 'rtl',
