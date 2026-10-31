@@ -272,3 +272,5 @@ select.active { border-color: var(--accent); }
   .print-sheet .p-cover { width: 34px; padding-inline-end: 0; }
   .print-sheet .p-cover img { width: 30px; height: 30px; object-fit: cover; border-radius: 2px; display: block; }
 }
+.src-badge { font-size: 0.68rem; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; flex: none; }
+.src-discogs { color: var(--accent-2); }

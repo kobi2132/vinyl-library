@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import type { RecordDraft, VinylRecord } from '../types'
-import { getReleaseDetails, searchByBarcode, searchByText, type Candidate } from '../lib/musicbrainz'
+import { lookupBarcode as findByBarcode, lookupDetails, lookupText, type Candidate } from '../lib/lookup'
 import { Modal } from './Modal'
 import { Scanner } from './Scanner'
 import { CandidateList } from './CandidateList'
@@ -37,7 +37,7 @@ export function AddFlow({
     setError(null)
     setStep({ kind: 'searching', label: `מחפש את ${code}…` })
     try {
-      const items = await searchByBarcode(code)
+      const items = await findByBarcode(code)
       if (items.length === 0) setStep({ kind: 'notfound', barcode: code })
       else setStep({ kind: 'pick', items, barcode: code })
     } catch (e) {
@@ -47,10 +47,10 @@ export function AddFlow({
   }, [])
 
   const pick = async (c: Candidate, barcode?: string) => {
-    setBusyId(c.mbid)
+    setBusyId(c.source + c.id)
     setError(null)
     try {
-      const draft = await getReleaseDetails(c.mbid)
+      const draft = await lookupDetails(c)
       if (barcode && !draft.barcode) draft.barcode = barcode
       setFormKey((k) => k + 1)
       setStep({ kind: 'form', draft })
@@ -65,7 +65,7 @@ export function AddFlow({
     setError(null)
     setStep({ kind: 'searching', label: 'מחפש…' })
     try {
-      const items = await searchByText(draft.artist, draft.title)
+      const items = await lookupText(draft.artist, draft.title)
       if (items.length) setStep({ kind: 'pick', items })
       else {
         setError('לא נמצאו תוצאות. אפשר למלא את הפרטים ידנית.')
@@ -81,6 +81,7 @@ export function AddFlow({
     records.find(
       (r) =>
         (d.mbid && r.mbid === d.mbid) ||
+        (d.discogsId && r.discogsId === d.discogsId) ||
         (d.barcode && r.barcode === d.barcode) ||
         (r.artist.toLowerCase() === d.artist.toLowerCase() && r.title.toLowerCase() === d.title.toLowerCase()),
     )
@@ -171,7 +172,7 @@ function FormStep({
 }) {
   const [pending, setPending] = useState<RecordDraft | null>(null)
   const dup = draft.artist || pending ? duplicate(pending ?? draft) : undefined
-  const fromLookup = Boolean(draft.mbid)
+  const fromLookup = Boolean(draft.mbid || draft.discogsId)
 
   if (pending && dup) {
     return (

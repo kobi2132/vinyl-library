@@ -4,15 +4,24 @@ const MB = 'https://musicbrainz.org/ws/2'
 
 /* MusicBrainz asks for max ~1 request/second per client. */
 let last = 0
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
 async function mbFetch<T>(path: string): Promise<T> {
-  const wait = last + 1100 - Date.now()
-  if (wait > 0) await new Promise((r) => setTimeout(r, wait))
-  last = Date.now()
   const sep = path.includes('?') ? '&' : '?'
-  const res = await fetch(`${MB}${path}${sep}fmt=json`, { headers: { Accept: 'application/json' } })
-  if (res.status === 503) throw new Error('MusicBrainz עמוס כרגע, נסה שוב בעוד רגע')
-  if (!res.ok) throw new Error(`שגיאה בחיפוש (${res.status})`)
-  return (await res.json()) as T
+  // MusicBrainz answers 503 when it is rate limiting; wait and try again a few times
+  for (let attempt = 0; ; attempt++) {
+    const wait = last + 1100 - Date.now()
+    if (wait > 0) await sleep(wait)
+    last = Date.now()
+    const res = await fetch(`${MB}${path}${sep}fmt=json`, { headers: { Accept: 'application/json' } })
+    if (res.status === 503 && attempt < 3) {
+      await sleep(1500 * (attempt + 1))
+      continue
+    }
+    if (res.status === 503) throw new Error('MusicBrainz עמוס כרגע, נסה שוב בעוד רגע')
+    if (!res.ok) throw new Error(`שגיאה בחיפוש (${res.status})`)
+    return (await res.json()) as T
+  }
 }
 
 interface MbArtistCredit {
@@ -40,7 +49,10 @@ interface MbRelease {
 }
 
 export interface Candidate {
-  mbid: string
+  source: 'musicbrainz' | 'discogs'
+  /** id in the source database */
+  id: string
+  mbid?: string
   artist: string
   title: string
   year?: number
@@ -70,6 +82,8 @@ const formatOf = (r: MbRelease) => {
 function toCandidate(r: MbRelease): Candidate {
   const li = r['label-info']?.[0]
   return {
+    source: 'musicbrainz',
+    id: r.id,
     mbid: r.id,
     artist: artistOf(r['artist-credit']),
     title: r.title,

@@ -3,7 +3,7 @@
 אפליקציית ווב לניהול אוסף תקליטים אישי.
 
 - התחברות עם Google, והספרייה נשמרת כקובץ JSON בתיקיית האפליקציה המוסתרת בדרייב (`appDataFolder`).
-- סריקת ברקוד במצלמה (BarcodeDetector מובנה, או ZXing/WebAssembly באייפון) ושליפת פרטים מ-[MusicBrainz](https://musicbrainz.org) ועטיפות מ-[Cover Art Archive](https://coverartarchive.org).
+- סריקת ברקוד במצלמה (BarcodeDetector מובנה, או ZXing/WebAssembly באייפון) ושליפת פרטים מ-[MusicBrainz](https://musicbrainz.org) (עטיפות מ-[Cover Art Archive](https://coverartarchive.org)) ומ-[Discogs](https://www.discogs.com), שבו יש הרבה יותר תקליטים ישראליים. הבקשות ל-Discogs עוברות דרך Caddy בשרת (`/api/discogs/`), שמוסיף את הטוקן, כך שהטוקן לא מגיע לדפדפן.
 - הוספה ידנית, עם מילוי אוטומטי לפי אמן ושם אלבום.
 - חיפוש חופשי, מיון לפי אמן/אלבום/שנה/תאריך הוספה, סינון לפי ז'אנר ועשור, תצוגת עטיפות או רשימה.
 - גיבוי ושחזור JSON, ייצוא CSV לאקסל.
@@ -37,7 +37,7 @@ docker compose up -d
 
 אחר כך:
 
-1. להוסיף את התוכן של `Caddyfile.snippet` ל-`/srv/proxy/Caddyfile` ולטעון מחדש את Caddy.
+1. להוסיף את התוכן של `Caddyfile.snippet` ל-`/srv/proxy/Caddyfile` (עם `sudo tee -a`, הקובץ שייך ל-root), להחליף בו את `PUT_DISCOGS_TOKEN_HERE` בטוקן של Discogs, ולטעון מחדש את Caddy.
 2. ב-DNS: רשומת A בשם `my-vinyl-library` אל 65.109.12.170.
 3. עדכון אוטומטי ב-crontab:
    `* * * * * cd /srv/apps/vinyl && git fetch -q origin deploy && git reset -q --hard origin/deploy`

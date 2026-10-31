@@ -19,6 +19,7 @@ export interface VinylRecord {
   tracks?: Track[]
   notes?: string
   mbid?: string
+  discogsId?: number
   addedAt: string
   updatedAt: string
 }

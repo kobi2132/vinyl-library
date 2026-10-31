@@ -75,6 +75,11 @@ export function RecordDetail({
             ))}
           </dl>
           {record.notes && <p className="notes">{record.notes}</p>}
+          {record.discogsId && (
+            <a className="ext-link" href={`https://www.discogs.com/release/${record.discogsId}`} target="_blank" rel="noreferrer">
+              צפייה ב-Discogs ↗
+            </a>
+          )}
           {record.mbid && (
             <a className="ext-link" href={`https://musicbrainz.org/release/${record.mbid}`} target="_blank" rel="noreferrer">
               צפייה ב-MusicBrainz ↗
