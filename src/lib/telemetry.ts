@@ -4,7 +4,7 @@
  * library's size. For signed-in users the server turns the Google account into an anonymous id
  * (it never stores the email), so one person on two devices counts once.
  */
-import { getStoredToken } from './google'
+import { getStoredToken, getStoredUser } from './google'
 import type { LibraryFile } from '../types'
 import { isStandalone } from './install'
 
@@ -134,6 +134,17 @@ export function trackOpen() {
   }
 }
 
+/*
+ * Google's sign-in lasts an hour, but the app keeps working from the saved library after that,
+ * so most batches go out without a valid sign-in. The account the device signed in with is sent
+ * too, so the server can still count one person on two devices once. The server turns it into
+ * an anonymous code right away and never stores it; a verified sign-in always wins over it.
+ */
+function accountHint(): string | undefined {
+  if (localStorage.getItem('vl.mode') !== 'google') return undefined
+  return getStoredUser()?.email?.toLowerCase() || undefined
+}
+
 let flushing = false
 export async function flush(keepalive = false) {
   if (flushing || !navigator.onLine) return
@@ -146,7 +157,7 @@ export async function flush(keepalive = false) {
       method: 'POST',
       keepalive,
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-      body: JSON.stringify({ device: deviceId(), events, snapshot: snapshot() }),
+      body: JSON.stringify({ device: deviceId(), account: accountHint(), events, snapshot: snapshot() }),
     })
     // sent (or refused for good): drop what was sent, keep anything queued meanwhile
     if (res.ok || (res.status >= 400 && res.status < 500 && res.status !== 429)) {
@@ -204,7 +215,8 @@ export async function adminFetch<T>(path: string, init?: RequestInit): Promise<T
   if (!token) throw new AdminError('צריך להתחבר מחדש עם Google')
   const res = await fetch(`${API}/admin/${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...init?.headers },
+    // the device id lets the server tie this device to the owner, so "I don't count" covers it
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Device': deviceId(), ...init?.headers },
   })
   if (res.status === 403) throw new AdminError('אין הרשאה, או שההתחברות פגה. כדאי להתחבר מחדש.')
   if (!res.ok) throw new AdminError('השרת לא ענה. אולי השירות עוד לא הותקן.')
