@@ -200,9 +200,10 @@ async function postContact(req, res) {
 // a person is their Google account when known, otherwise the device
 const PERSON = `COALESCE(d.account, 'd:' || d.id)`
 
-function stats(since) {
+function stats(since, excludeMe) {
   const now = Date.now()
-  const notMe = `(d.account IS NULL OR d.account != '${ADMIN_ACCOUNT}')`
+  // the owner can leave themselves out of the numbers (a checkbox on the developer page)
+  const notMe = excludeMe ? `(d.account IS NULL OR d.account != '${ADMIN_ACCOUNT}')` : '1'
   const people = db
     .prepare(
       `SELECT ${PERSON} AS p, MIN(d.first_seen) AS first, MAX(d.account IS NOT NULL) AS google
@@ -364,7 +365,7 @@ async function admin(req, res, path) {
   const url = new URL(req.url, 'http://x')
   const since = Math.max(0, Number(url.searchParams.get('since')) || 0)
   if (req.method === 'GET' && path === 'summary') return send(res, 200, { open: openCount.get().n })
-  if (req.method === 'GET' && path === 'stats') return send(res, 200, stats(since))
+  if (req.method === 'GET' && path === 'stats') return send(res, 200, stats(since, url.searchParams.get('excludeMe') === '1'))
   if (req.method === 'GET' && path === 'users') return send(res, 200, users(since))
   if (req.method === 'GET' && path === 'info') return send(res, 200, info())
   if (req.method === 'GET' && path === 'messages')
