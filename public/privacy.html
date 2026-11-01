@@ -23,7 +23,7 @@
 
   <h2>התחברות עם Google: מה מתקבל ולמה</h2>
   <ul>
-    <li><strong>שם, כתובת מייל ותמונת פרופיל</strong> (ההרשאות <code dir="ltr">openid</code>, <code dir="ltr">email</code>, <code dir="ltr">profile</code>). הם מוצגים לך בתפריט האפליקציה כדי שתדע לאיזה חשבון אתה מחובר. הם נשמרים בדפדפן שלך. לצורך הסטטיסטיקות האנונימיות (ראו בהמשך), השרת שלנו מאמת את ההתחברות מול Google והופך את כתובת המייל לקוד אנונימי. המייל עצמו, השם והתמונה לא נשמרים אצלנו.</li>
+    <li><strong>שם, כתובת מייל ותמונת פרופיל</strong> (ההרשאות <code dir="ltr">openid</code>, <code dir="ltr">email</code>, <code dir="ltr">profile</code>). הם מוצגים לך בתפריט האפליקציה כדי שתדע לאיזה חשבון אתה מחובר. הם נשמרים בדפדפן שלך. לצורך הסטטיסטיקות האנונימיות (ראו בהמשך), האפליקציה שולחת לשרת שלנו את כתובת המייל של החשבון המחובר (ובכל פעם שאפשר, השרת מאמת אותה מול Google), והשרת הופך אותה מיד לקוד אנונימי. המייל עצמו, השם והתמונה לא נשמרים אצלנו.</li>
     <li><strong>גישה לתיקיית האפליקציה המוסתרת ב-Google Drive</strong> (ההרשאה <code dir="ltr">drive.appdata</code>). שם נשמר קובץ אחד, <code dir="ltr">vinyl-library.json</code>, עם רשימת התקליטים שלך, כדי לגבות אותה ולסנכרן בין המכשירים שלך. לאפליקציה <strong>אין גישה</strong> לשום קובץ אחר ב-Drive שלך, והיא לא יכולה לראות, לקרוא או לשנות אותם.</li>
   </ul>
   <p>הגישה ל-Drive מתבצעת ישירות מהדפדפן שלך אל Google. המידע לא עובר דרך שרת שלנו.</p>
@@ -92,7 +92,7 @@
 
     <h2>Signing in with Google: what we receive and why</h2>
     <ul>
-      <li><strong>Name, email address and profile picture</strong> (<code>openid</code>, <code>email</code>, <code>profile</code>). They are shown in the app menu so you know which account is connected. They are stored in your browser. For the anonymous statistics (see below), our server verifies the sign-in with Google and turns the email address into an anonymous code. The email itself, your name and picture are not stored by us.</li>
+      <li><strong>Name, email address and profile picture</strong> (<code>openid</code>, <code>email</code>, <code>profile</code>). They are shown in the app menu so you know which account is connected. They are stored in your browser. For the anonymous statistics (see below), the app sends the signed-in account's email address to our server (which verifies it with Google whenever it can), and the server immediately turns it into an anonymous code. The email itself, your name and picture are not stored by us.</li>
       <li><strong>Access to the app's hidden folder in Google Drive</strong> (<code>drive.appdata</code>). A single file, <code>vinyl-library.json</code>, holding your list of records is saved there to back it up and sync it between your devices. The app has <strong>no access</strong> to any other file in your Drive and cannot see, read or change them.</li>
     </ul>
     <p>Drive is accessed directly from your browser to Google. The data never passes through a server of ours.</p>

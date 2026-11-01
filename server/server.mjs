@@ -54,6 +54,7 @@ const PLATFORMS = new Set(['android', 'iphone', 'desktop', 'other'])
 const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
 const int = (v) => (Number.isFinite(v) && v >= 0 ? Math.floor(v) : null)
 const validId = (v) => typeof v === 'string' && /^[a-zA-Z0-9-]{8,64}$/.test(v)
+const validEmail = (v) => typeof v === 'string' && v.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
 
 function send(res, status, body) {
   const json = body === undefined ? '' : JSON.stringify(body)
@@ -122,9 +123,9 @@ const ipOf = (req) => String(req.headers['x-forwarded-for'] || req.socket.remote
 
 const upsertDevice = db.prepare(`
   INSERT INTO devices (id, account, first_seen, last_seen, platform, installed, records, lib_bytes, genres)
-  VALUES (:id, :account, :now, :now, :platform, :installed, :records, :lib_bytes, :genres)
+  VALUES (:id, COALESCE(:account, :hint), :now, :now, :platform, :installed, :records, :lib_bytes, :genres)
   ON CONFLICT(id) DO UPDATE SET
-    account = COALESCE(:account, account), last_seen = MAX(last_seen, :now),
+    account = COALESCE(:account, account, :hint), last_seen = MAX(last_seen, :now),
     platform = COALESCE(:platform, platform), installed = MAX(installed, :installed),
     records = COALESCE(:records, records), lib_bytes = COALESCE(:lib_bytes, lib_bytes), genres = COALESCE(:genres, genres)
 `)
@@ -147,7 +148,9 @@ async function postEvents(req, res) {
   }
   upsertDevice.run({
     id: b.device,
+    // a verified sign-in sets (or corrects) the account; the unverified hint only fills a gap
     account: email ? accountId(email) : null,
+    hint: validEmail(b.account) ? accountId(b.account) : null,
     now,
     platform: PLATFORMS.has(s.platform) ? s.platform : null,
     installed: s.installed ? 1 : 0,
@@ -358,10 +361,14 @@ const listMessages = db.prepare('SELECT * FROM messages ORDER BY ts DESC LIMIT 5
 const openCount = db.prepare('SELECT COUNT(*) AS n FROM messages WHERE handled = 0')
 const setHandled = db.prepare('UPDATE messages SET handled = ? WHERE id = ?')
 const deleteMessage = db.prepare('DELETE FROM messages WHERE id = ?')
+const linkOwner = db.prepare('UPDATE devices SET account = ? WHERE id = ?')
 
 async function admin(req, res, path) {
   const email = await emailFromToken(req)
   if (email !== ADMIN_EMAIL) return send(res, 403, { error: 'forbidden' })
+  // the owner's device is now known for sure, even if it never sent a signed-in batch
+  const dev = req.headers['x-device']
+  if (validId(dev)) linkOwner.run(ADMIN_ACCOUNT, dev)
   const url = new URL(req.url, 'http://x')
   const since = Math.max(0, Number(url.searchParams.get('since')) || 0)
   if (req.method === 'GET' && path === 'summary') return send(res, 200, { open: openCount.get().n })
