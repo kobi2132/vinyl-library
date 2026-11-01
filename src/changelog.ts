@@ -10,6 +10,11 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.6.1',
+    date: '01.11.2026',
+    changes: ['עמוד מפתח: תיבת סימון "אני לא נחשב" בסטטיסטיקות. כברירת מחדל גם בעל האפליקציה נספר'],
+  },
+  {
     version: '1.6.0',
     date: '01.11.2026',
     changes: [
