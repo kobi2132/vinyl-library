@@ -157,14 +157,51 @@ const Kpi = ({ label, value, note }: { label: string; value: string; note?: stri
   </div>
 )
 
+const EXCLUDE_KEY = 'vl.devExcludeMe'
+
 function StatsTab({ since }: { since: number }) {
-  const { data: s, error } = useAdmin<Stats>(`stats?since=${since}`)
-  if (error) return <p className="dev-error">{error}</p>
-  if (!s) return <p className="dev-empty">טוען…</p>
+  // off by default: the owner is counted like everyone else unless they tick the box
+  const [excludeMe, setExcludeMe] = useState(() => {
+    try {
+      return localStorage.getItem(EXCLUDE_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
+  const toggleExclude = (v: boolean) => {
+    setExcludeMe(v)
+    try {
+      localStorage.setItem(EXCLUDE_KEY, v ? '1' : '')
+    } catch {
+      /* ignore */
+    }
+  }
+  const { data: s, error } = useAdmin<Stats>(`stats?since=${since}${excludeMe ? '&excludeMe=1' : ''}`)
+  const checkbox = (
+    <label className="dev-check" htmlFor="dev-exclude-me">
+      <input id="dev-exclude-me" type="checkbox" checked={excludeMe} onChange={(e) => toggleExclude(e.target.checked)} />
+      אני לא נחשב
+    </label>
+  )
+  if (error)
+    return (
+      <>
+        {checkbox}
+        <p className="dev-error">{error}</p>
+      </>
+    )
+  if (!s)
+    return (
+      <>
+        {checkbox}
+        <p className="dev-empty">טוען…</p>
+      </>
+    )
   const ret = (r: Stats['retention']['week']) => (r ? pct(r.back, r.of) : '–')
   const retNote = (r: Stats['retention']['week']) => (r ? `${r.back} מתוך ${r.of}` : 'עוד מוקדם')
   return (
     <>
+      {checkbox}
       <h4 className="dev-sec">משתמשים</h4>
       <div className="dev-kpis">
         <Kpi label="התחברו בתקופה" value={num(s.users.active)} />
@@ -224,7 +261,6 @@ function StatsTab({ since }: { since: number }) {
         />
         <div className="dev-legend">הותקנו כאפליקציה: {num(s.installed)}</div>
       </div>
-      <p className="dev-foot">המשתמש שלך לא נספר בסטטיסטיקות.</p>
     </>
   )
 }

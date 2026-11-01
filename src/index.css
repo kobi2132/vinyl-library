@@ -398,3 +398,5 @@ select.active { border-color: var(--accent); }
 .dev-acts { display: flex; gap: 6px; flex-wrap: wrap; }
 .dev-acts button, .dev-acts a { font-size: 0.82rem; border-radius: 999px; padding: 5px 12px; border: 1px solid var(--line); background: var(--bg-2); color: var(--text); text-decoration: none; }
 .dev-acts .ok { border-color: var(--ok); color: var(--ok); }
+.dev-check { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--muted); cursor: pointer; align-self: flex-start; }
+.dev-check input { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }
