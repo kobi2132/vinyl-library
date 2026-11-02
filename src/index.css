@@ -430,3 +430,6 @@ select.active { border-color: var(--accent); }
 .pick-head > .muted { margin: 0 0 10px; color: var(--muted); }
 .pick-head .pick-search { width: 100%; margin-bottom: 8px; }
 .pick-row .cover-sm { width: 48px; height: 48px; box-shadow: none; }
+/* Hebrew and English names line up on the same (right) edge, next to the cover */
+.card-text, .pick-text { flex: 1; }
+.card-text > *, .pick-text > * { text-align: right; }

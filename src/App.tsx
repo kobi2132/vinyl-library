@@ -224,7 +224,7 @@ export default function App() {
             <small>
               {lib.records.length} תקליטים · {artists} אמנים
             </small>
-            {enrich.left > 0 && <small className="enrich-note">משלים עטיפות מ-Discogs: {enrich.left}</small>}
+            {enrich.left > 0 && <small className="enrich-note">משלים עטיפות ({enrich.left})</small>}
           </div>
         </div>
         <div className="topbar-end">
