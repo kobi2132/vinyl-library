@@ -60,6 +60,7 @@ const FEATURE_LABELS: Record<string, string> = {
   install: 'התקנה למסך הבית',
   contact: 'צור קשר',
   sync: 'סנכרון ידני',
+  import_discogs: 'ייבוא מ-Discogs',
 }
 const PLATFORM_LABELS: Record<string, string> = { android: 'Android', iphone: 'iPhone', desktop: 'מחשב', other: 'אחר' }
 const RANGES: [Range, string][] = [

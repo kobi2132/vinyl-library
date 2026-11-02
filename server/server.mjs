@@ -45,6 +45,7 @@ db.exec(`
 const FEATURES = new Set([
   'open', 'scan_barcode', 'scan_catno', 'search_name', 'add_manual', 'add', 'lookup', 'edit',
   'export_excel', 'export_pdf', 'backup', 'restore', 'install', 'contact', 'sync',
+  'import_discogs',
 ])
 const TYPES = new Set(['bug', 'idea', 'feedback', 'other'])
 const PLATFORMS = new Set(['android', 'iphone', 'desktop', 'other'])

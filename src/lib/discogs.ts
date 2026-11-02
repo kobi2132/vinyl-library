@@ -129,3 +129,32 @@ export async function dgGetReleaseDetails(id: string): Promise<RecordDraft> {
     discogsId: r.id,
   }
 }
+
+interface DgCollectionPage {
+  pagination: { pages: number }
+  releases: { id: number; basic_information: { thumb?: string; cover_image?: string; genres?: string[]; styles?: string[] } }[]
+}
+
+export interface DgCover {
+  thumb?: string
+  coverUrl?: string
+  genres?: string[]
+}
+
+/** One page (100 records) of a user's Discogs collection: covers and genres. Works for public collections. */
+export async function dgCollectionPage(user: string, page: number): Promise<{ pages: number; covers: Map<number, DgCover> }> {
+  const j = await dgFetch<DgCollectionPage>(
+    `/users/${encodeURIComponent(user)}/collection/folders/0/releases?per_page=100&page=${page}`,
+  )
+  const covers = new Map<number, DgCover>()
+  for (const r of j.releases ?? []) {
+    const b = r.basic_information ?? {}
+    const real = (u?: string) => (u && !/spacer\.gif/.test(u) ? u : undefined)
+    covers.set(r.id, {
+      thumb: real(b.thumb) ?? real(b.cover_image),
+      coverUrl: real(b.cover_image) ?? real(b.thumb),
+      genres: [...(b.styles ?? []), ...(b.genres ?? [])].slice(0, 4),
+    })
+  }
+  return { pages: j.pagination?.pages ?? 1, covers }
+}

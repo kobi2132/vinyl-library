@@ -169,6 +169,30 @@ export function useLibrary() {
     [commit],
   )
 
+  const addRecords = useCallback(
+    (recs: VinylRecord[]) => {
+      const cur = libRef.current
+      commit({ ...cur, records: [...cur.records, ...recs] })
+    },
+    [commit],
+  )
+
+  /** Fill in fields on several records at once (one save for the whole batch). */
+  const patchRecords = useCallback(
+    (patches: Map<string, Partial<VinylRecord>>) => {
+      const cur = libRef.current
+      const now = new Date().toISOString()
+      commit({
+        ...cur,
+        records: cur.records.map((r) => {
+          const p = patches.get(r.id)
+          return p ? { ...r, ...p, id: r.id, updatedAt: now } : r
+        }),
+      })
+    },
+    [commit],
+  )
+
   const importLibrary = useCallback(
     (incoming: LibraryFile) => {
       commit(mergeLibraries(libRef.current, incoming))
@@ -229,6 +253,8 @@ export function useLibrary() {
     removeRecord,
     restoreRecord,
     importLibrary,
+    addRecords,
+    patchRecords,
     connectGoogle,
     startLocal,
     logout,

@@ -16,6 +16,8 @@ import { InstallPrompt } from './components/InstallPrompt'
 import { shouldInvite } from './lib/install'
 import { ContactPage } from './components/ContactPage'
 import { DevPage } from './components/DevPage'
+import { DiscogsImport } from './components/DiscogsImport'
+import { useDiscogsEnrich } from './lib/useDiscogsEnrich'
 import { adminFetch, setLibrary, track, trackOpen } from './lib/telemetry'
 import { ADMIN_EMAIL } from './config'
 import { BarcodeIcon, GridIcon, ListIcon, PlusIcon, SearchIcon } from './components/Icons'
@@ -74,10 +76,12 @@ export default function App() {
   const [inviteInstall, setInviteInstall] = useState(false)
   const [contactOpen, setContactOpen] = useState(false)
   const [devOpen, setDevOpen] = useState(false)
+  const [discogsOpen, setDiscogsOpen] = useState(false)
   const [devCount, setDevCount] = useState(0)
   const isAdmin = lib.mode === 'google' && lib.user?.email?.toLowerCase() === ADMIN_EMAIL
 
   const say = (text: string, undo?: () => void) => setToast({ text, undo })
+  const enrich = useDiscogsEnrich(lib.records, Boolean(lib.mode), lib.patchRecords)
 
   useEffect(preloadGoogle, [])
   // anonymous usage stats: one "open" per visit, and the library's size with each batch
@@ -198,6 +202,13 @@ export default function App() {
     }
   }
 
+  const importDiscogs = (records: VinylRecord[]) => {
+    lib.addRecords(records)
+    track('import_discogs', String(records.length))
+    setDiscogsOpen(false)
+    say(records.length === 1 ? 'תקליט אחד יובא מ-Discogs' : `יובאו ${records.length} תקליטים מ-Discogs`)
+  }
+
   const logout = () => {
     if (lib.hasUnsynced() && !confirm('יש שינויים שעוד לא נשמרו בדרייב. להתנתק בכל זאת?')) return
     lib.logout()
@@ -213,6 +224,7 @@ export default function App() {
             <small>
               {lib.records.length} תקליטים · {artists} אמנים
             </small>
+            {enrich.left > 0 && <small className="enrich-note">משלים עטיפות ({enrich.left})</small>}
           </div>
         </div>
         <div className="topbar-end">
@@ -242,6 +254,7 @@ export default function App() {
             }}
             exportNote={filtering ? `הייצוא כולל רק את ${shown.length} התקליטים שמוצגים כרגע` : undefined}
             onImport={importFile}
+            onDiscogs={() => setDiscogsOpen(true)}
             onSync={() => {
               lib.syncNow()
               track('sync')
@@ -329,6 +342,9 @@ export default function App() {
             </button>
             <button className="link-btn" onClick={() => setAdding('manual')}>
               או הוספה ידנית
+            </button>
+            <button className="link-btn" onClick={() => setDiscogsOpen(true)}>
+              יש לכם אוסף ב-Discogs? ייבוא בבת אחת
             </button>
           </div>
         ) : shown.length === 0 ? (
@@ -436,6 +452,7 @@ export default function App() {
       )}
 
       {contactOpen && <ContactPage user={lib.user} onClose={() => setContactOpen(false)} />}
+      {discogsOpen && <DiscogsImport library={lib.records} onImport={importDiscogs} onClose={() => setDiscogsOpen(false)} />}
       {devOpen && <DevPage openCount={devCount} onCount={setDevCount} onClose={() => setDevOpen(false)} />}
       {inviteInstall && <InstallPrompt onClose={() => setInviteInstall(false)} />}
       {toast && (

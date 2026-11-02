@@ -30,6 +30,7 @@ export type Feature =
   | 'install'
   | 'contact'
   | 'sync'
+  | 'import_discogs'
 
 interface QueuedEvent {
   name: Feature

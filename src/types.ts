@@ -20,6 +20,8 @@ export interface VinylRecord {
   notes?: string
   mbid?: string
   discogsId?: number
+  /** Imported from a Discogs CSV; cover, genres and tracks still to be fetched */
+  enrichPending?: boolean
   addedAt: string
   updatedAt: string
 }
