@@ -426,3 +426,7 @@ select.active { border-color: var(--accent); }
 .pick-actions { position: sticky; bottom: -18px; display: flex; gap: 10px; padding: 12px 0 4px; background: var(--bg-2); border-top: 1px solid var(--line); margin-top: 8px; }
 .pick-actions .btn.primary { flex: 1; }
 .pick-actions .btn:disabled { opacity: 0.5; }
+.pick-head { position: sticky; top: -18px; z-index: 2; background: var(--bg-2); margin-top: -18px; padding-top: 18px; }
+.pick-head > .muted { margin: 0 0 10px; color: var(--muted); }
+.pick-head .pick-search { width: 100%; margin-bottom: 8px; }
+.pick-row .cover-sm { width: 48px; height: 48px; box-shadow: none; }
