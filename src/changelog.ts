@@ -10,6 +10,14 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.7.0',
+    date: '02.11.2026',
+    changes: [
+      'ייבוא האוסף מ-Discogs: בתפריט, "ייבוא האוסף מ-Discogs…" מקבל את קובץ ה-CSV (או zip) שמייצאים מ-Discogs',
+      'תקליטים שכבר בספרייה לא נכנסים פעמיים; עטיפות, ז\'אנרים ושירים מתמלאים מ-Discogs ברקע',
+    ],
+  },
+  {
     version: '1.6.2',
     date: '01.11.2026',
     changes: [

@@ -11,6 +11,7 @@ export function Menu({
   onExportPdf,
   exportNote,
   onImport,
+  onDiscogs,
   onSync,
   onConnect,
   onLogout,
@@ -25,6 +26,7 @@ export function Menu({
   onExportPdf: () => void
   exportNote?: string
   onImport: (f: File) => void
+  onDiscogs: () => void
   onSync: () => void
   onConnect: () => void
   onLogout: () => void
@@ -93,6 +95,7 @@ export function Menu({
           <hr />
           {item('גיבוי: הורדת קובץ JSON', onExport)}
           {item('שחזור מגיבוי…', () => file.current?.click())}
+          {item('ייבוא האוסף מ-Discogs…', onDiscogs)}
           <hr />
           {item('צור קשר', onContact)}
           {isLocal ? item('התחברות עם Google', onConnect) : item('התנתקות', onLogout)}

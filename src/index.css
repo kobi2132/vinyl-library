@@ -402,3 +402,11 @@ select.active { border-color: var(--accent); }
 .dev-acts .ok { border-color: var(--ok); color: var(--ok); }
 .dev-check { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--muted); cursor: pointer; align-self: flex-start; }
 .dev-check input { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }
+
+/* Import from Discogs */
+.discogs-import p { margin: 0 0 12px; line-height: 1.7; }
+.discogs-import ol { margin: 0 0 14px; padding-inline-start: 22px; line-height: 1.8; }
+.discogs-import a { color: var(--accent-2); }
+.discogs-import .muted { color: var(--muted); font-size: 0.9rem; }
+.discogs-import .form-error { color: var(--danger); }
+.brand small.enrich-note { display: block; color: var(--accent-2); }
