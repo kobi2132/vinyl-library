@@ -17,7 +17,6 @@ import { shouldInvite } from './lib/install'
 import { ContactPage } from './components/ContactPage'
 import { DevPage } from './components/DevPage'
 import { DiscogsImport } from './components/DiscogsImport'
-import { parseDiscogsCsv, readDiscogsFile } from './lib/discogsCsv'
 import { useDiscogsEnrich } from './lib/useDiscogsEnrich'
 import { adminFetch, setLibrary, track, trackOpen } from './lib/telemetry'
 import { ADMIN_EMAIL } from './config'
@@ -203,23 +202,11 @@ export default function App() {
     }
   }
 
-  /** Resolves with an error message to show in the import sheet, or null when done. */
-  const importDiscogs = async (f: File): Promise<string | null> => {
-    try {
-      const { records, total, existing } = parseDiscogsCsv(await readDiscogsFile(f), lib.records)
-      if (total === 0) return 'הקובץ ריק'
-      if (records.length) lib.addRecords(records)
-      track('import_discogs', String(records.length))
-      setDiscogsOpen(false)
-      say(
-        records.length === 0
-          ? `כל ${existing} התקליטים מהקובץ כבר נמצאים בספרייה`
-          : `יובאו ${records.length} תקליטים מ-Discogs` + (existing ? ` (${existing} כבר היו בספרייה)` : ''),
-      )
-      return null
-    } catch (e) {
-      return (e as Error).message
-    }
+  const importDiscogs = (records: VinylRecord[]) => {
+    lib.addRecords(records)
+    track('import_discogs', String(records.length))
+    setDiscogsOpen(false)
+    say(records.length === 1 ? 'תקליט אחד יובא מ-Discogs' : `יובאו ${records.length} תקליטים מ-Discogs`)
   }
 
   const logout = () => {
@@ -465,7 +452,7 @@ export default function App() {
       )}
 
       {contactOpen && <ContactPage user={lib.user} onClose={() => setContactOpen(false)} />}
-      {discogsOpen && <DiscogsImport onFile={importDiscogs} onClose={() => setDiscogsOpen(false)} />}
+      {discogsOpen && <DiscogsImport library={lib.records} onImport={importDiscogs} onClose={() => setDiscogsOpen(false)} />}
       {devOpen && <DevPage openCount={devCount} onCount={setDevCount} onClose={() => setDevOpen(false)} />}
       {inviteInstall && <InstallPrompt onClose={() => setInviteInstall(false)} />}
       {toast && (

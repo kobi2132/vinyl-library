@@ -55,17 +55,14 @@ const cleanName = (s: string) =>
 
 const norm = (s?: string) => (s ?? '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')
 
-export interface DiscogsImport {
-  /** New records, ready to add */
-  records: VinylRecord[]
-  /** Rows in the file */
-  total: number
-  /** Rows skipped because the record is already in the library */
-  existing: number
+export interface DiscogsRow {
+  record: VinylRecord
+  /** Already in the library (same Discogs release, or same artist + title + catalogue number) */
+  existing: boolean
 }
 
-/** Turn a Discogs collection CSV into records, leaving out ones the library already has. */
-export function parseDiscogsCsv(text: string, library: VinylRecord[]): DiscogsImport {
+/** Turn a Discogs collection CSV into records, marking the ones the library already has. */
+export function parseDiscogsCsv(text: string, library: VinylRecord[]): DiscogsRow[] {
   const rows = parseCsv(text)
   const head = (rows[0] ?? []).map((h) => h.trim().toLowerCase())
   const col = (...names: string[]) => head.findIndex((h) => names.includes(h))
@@ -89,8 +86,7 @@ export function parseDiscogsCsv(text: string, library: VinylRecord[]): DiscogsIm
   const byId = new Set(library.map((r) => r.discogsId).filter(Boolean))
   const byName = new Set(library.map((r) => `${norm(r.artist)}|${norm(r.title)}|${norm(r.catalogNumber)}`))
   const now = new Date().toISOString()
-  const out: VinylRecord[] = []
-  let existing = 0
+  const out: DiscogsRow[] = []
 
   for (const r of rows.slice(1)) {
     const get = (i: number) => (i >= 0 ? (r[i] ?? '').trim() : '')
@@ -102,10 +98,7 @@ export function parseDiscogsCsv(text: string, library: VinylRecord[]): DiscogsIm
     const catno = get(ix.catno).split(/,\s+/)[0]
     const catalogNumber = catno && catno.toLowerCase() !== 'none' ? catno : undefined
     const nameKey = `${norm(artist)}|${norm(title)}|${norm(catalogNumber)}`
-    if ((discogsId && byId.has(discogsId)) || byName.has(nameKey)) {
-      existing++
-      continue
-    }
+    const existing = Boolean((discogsId && byId.has(discogsId)) || byName.has(nameKey))
 
     const year = parseInt(get(ix.released).slice(0, 4), 10)
     const label = cleanName(get(ix.label).split(/,\s+/)[0] ?? '')
@@ -117,7 +110,7 @@ export function parseDiscogsCsv(text: string, library: VinylRecord[]): DiscogsIm
     const added = get(ix.added)
     const addedDate = added ? new Date(added.replace(' ', 'T')) : null
 
-    out.push({
+    out.push({ existing, record: {
       id: crypto.randomUUID(),
       artist,
       title,
@@ -132,11 +125,9 @@ export function parseDiscogsCsv(text: string, library: VinylRecord[]): DiscogsIm
       enrichPending: discogsId ? true : undefined,
       addedAt: addedDate && !isNaN(addedDate.getTime()) ? addedDate.toISOString() : now,
       updatedAt: now,
-    })
-    // two copies of the same release in the file are both kept, but not matched again later
-    if (discogsId) byId.add(discogsId)
+    } })
   }
-  return { records: out, total: rows.length - 1, existing }
+  return out
 }
 
 /** Read the picked file: the CSV itself, or a .zip holding it (Discogs sometimes zips exports). */
