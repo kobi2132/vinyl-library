@@ -18,6 +18,7 @@ import { ContactPage } from './components/ContactPage'
 import { DevPage } from './components/DevPage'
 import { DiscogsImport } from './components/DiscogsImport'
 import { useDiscogsEnrich } from './lib/useDiscogsEnrich'
+import { useDiscogsLink } from './lib/useDiscogsLink'
 import { ArtistPage } from './components/ArtistPage'
 import { Wantlist } from './components/Wantlist'
 import { dgGetReleaseDetails } from './lib/discogs'
@@ -88,6 +89,7 @@ export default function App() {
 
   const say = (text: string, undo?: () => void) => setToast({ text, undo })
   const enrich = useDiscogsEnrich(lib.records, Boolean(lib.mode), lib.patchRecords)
+  useDiscogsLink(lib.records, Boolean(lib.mode) && enrich.left === 0, lib.patchRecords)
 
   useEffect(preloadGoogle, [])
   // anonymous usage stats: one "open" per visit, and the library's size with each batch

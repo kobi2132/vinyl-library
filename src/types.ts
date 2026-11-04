@@ -28,6 +28,8 @@ export interface VinylRecord {
   sleeveCondition?: Grade
   /** Marked by the owner as for sale (the store itself comes later) */
   forSale?: boolean
+  /** Already looked for this record on Discogs in the background (found or not), so not again */
+  discogsLinkTried?: boolean
   /** Imported from a Discogs CSV; cover, genres and tracks still to be fetched */
   enrichPending?: boolean
   addedAt: string

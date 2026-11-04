@@ -198,3 +198,16 @@ export async function getReleaseDetails(mbid: string): Promise<RecordDraft> {
     mbid: r.id,
   }
 }
+
+/**
+ * The Discogs release that MusicBrainz says is the same record (MusicBrainz keeps links to
+ * Discogs for many releases). Undefined when it has none.
+ */
+export async function mbDiscogsId(mbid: string): Promise<number | undefined> {
+  const r = await mbFetch<{ relations?: { type: string; url?: { resource: string } }[] }>(`/release/${mbid}?inc=url-rels`)
+  for (const rel of r.relations ?? []) {
+    const m = rel.type === 'discogs' ? rel.url?.resource.match(/discogs\.com\/release\/(\d+)/) : null
+    if (m) return Number(m[1])
+  }
+  return undefined
+}
