@@ -35,6 +35,7 @@ interface Info {
   devices: number
   messages: number
   avgLibBytes: number
+  discogs?: { hits: number; misses: number; stale: number; limited: number; cached: number; lastMinute: number }
 }
 interface Message {
   id: number
@@ -388,6 +389,28 @@ function InfoTab() {
               <span>קובץ ספרייה ממוצע</span>
               <b>{bytes(data.avgLibBytes)}</b>
             </div>
+            {data.discogs && (
+              <>
+                <div className="dev-kv">
+                  <span>Discogs: תשובות שמורות בשרת</span>
+                  <b>{num(data.discogs.cached)}</b>
+                </div>
+                <div className="dev-kv">
+                  <span>Discogs מאז ההפעלה: מהמטמון / מ-Discogs</span>
+                  <b>
+                    {num(data.discogs.hits)} / {num(data.discogs.misses)}
+                  </b>
+                </div>
+                <div className="dev-kv">
+                  <span>Discogs: נחסמו בגלל עומס (בלי תשובה שמורה)</span>
+                  <b>{num(data.discogs.limited)}</b>
+                </div>
+                <div className="dev-kv">
+                  <span>Discogs: בקשות בדקה האחרונה (מתוך 50)</span>
+                  <b>{num(data.discogs.lastMinute)}</b>
+                </div>
+              </>
+            )}
           </>
         )}
         <div className="dev-kv">

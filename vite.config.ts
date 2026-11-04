@@ -19,8 +19,8 @@ const sha = (() => {
 export default defineConfig({
   base: '/',
   // local development: the API runs with `node server/server.mjs` (see server/README.md)
-  server: { proxy: { '/api/app': 'http://localhost:8080' } },
-  preview: { proxy: { '/api/app': 'http://localhost:8080' } },
+  server: { proxy: { '/api/app': 'http://localhost:8080', '/api/discogs': 'http://localhost:8080' } },
+  preview: { proxy: { '/api/app': 'http://localhost:8080', '/api/discogs': 'http://localhost:8080' } },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
