@@ -1,4 +1,5 @@
 import type { VinylRecord } from '../types'
+import { parseGrade } from './grades'
 
 /*
  * Discogs "Export collection" (Collection -> Export -> Export Collection) gives a CSV like:
@@ -102,9 +103,12 @@ export function parseDiscogsCsv(text: string, library: VinylRecord[]): DiscogsRo
 
     const year = parseInt(get(ix.released).slice(0, 4), 10)
     const label = cleanName(get(ix.label).split(/,\s+/)[0] ?? '')
+    // the condition goes into its own fields; a grade we can't read stays in the notes
+    const mediaCondition = parseGrade(get(ix.media))
+    const sleeveCondition = parseGrade(get(ix.sleeve))
     const condition = [
-      get(ix.media) && `מצב תקליט: ${get(ix.media)}`,
-      get(ix.sleeve) && `מצב עטיפה: ${get(ix.sleeve)}`,
+      !mediaCondition && get(ix.media) && `מצב תקליט: ${get(ix.media)}`,
+      !sleeveCondition && get(ix.sleeve) && `מצב עטיפה: ${get(ix.sleeve)}`,
     ].filter(Boolean)
     const notes = [get(ix.notes), condition.join(' · ')].filter(Boolean).join('\n')
     const added = get(ix.added)
@@ -120,6 +124,8 @@ export function parseDiscogsCsv(text: string, library: VinylRecord[]): DiscogsRo
       catalogNumber,
       format: get(ix.format) || undefined,
       notes: notes || undefined,
+      mediaCondition,
+      sleeveCondition,
       discogsId,
       // cover, genres and tracks are filled in afterwards from Discogs (see useDiscogsEnrich)
       enrichPending: discogsId ? true : undefined,

@@ -3,7 +3,9 @@ import type { RecordDraft, VinylRecord } from '../types'
 import { Modal } from './Modal'
 import { Cover } from './Cover'
 import { RecordForm } from './RecordForm'
-import { EditIcon, TrashIcon } from './Icons'
+import { EditIcon, TagIcon, TrashIcon } from './Icons'
+import { GradeHelp } from './GradeLegend'
+import { DiscogsSections } from './DiscogsSections'
 
 export function RecordDetail({
   record,
@@ -12,10 +14,16 @@ export function RecordDetail({
   onDelete,
   onClose,
   onGenre,
+  onPatch,
+  onArtist,
 }: {
   record: VinylRecord
   genreOptions: string[]
   onUpdate: (d: RecordDraft) => void
+  /** Change a few fields straight from the page (for sale, the pressing), with an optional message */
+  onPatch: (p: Partial<VinylRecord>, message?: string) => void
+  /** Open the artist's page on Discogs data ("what am I missing") */
+  onArtist: (artistId: number, name: string) => void
   onDelete: () => void
   onClose: () => void
   onGenre: (g: string) => void
@@ -51,6 +59,15 @@ export function RecordDetail({
 
   const facts: [string, React.ReactNode][] = (
     [
+      [
+        'מצב תקליט / עטיפה',
+        (record.mediaCondition || record.sleeveCondition) && (
+          <span className="cond" key="cond">
+            <bdi dir="ltr">{record.mediaCondition ?? '–'}</bdi> / <bdi dir="ltr">{record.sleeveCondition ?? '–'}</bdi>
+            <GradeHelp />
+          </span>
+        ),
+      ],
       ['שנה', record.year],
       ['לייבל', record.label],
       ['מספר קטלוגי', record.catalogNumber && <bdi dir="ltr">{record.catalogNumber}</bdi>],
@@ -120,6 +137,17 @@ export function RecordDetail({
               </div>
             ))}
           </dl>
+          <div className="sale-row">
+            <button
+              className={`sale-toggle ${record.forSale ? 'on' : ''}`}
+              aria-pressed={Boolean(record.forSale)}
+              onClick={() => onPatch({ forSale: record.forSale ? undefined : true })}
+            >
+              <TagIcon size={16} />
+              {record.forSale ? 'מסומן למכירה' : 'סימון למכירה'}
+            </button>
+            {record.forSale && <span className="soon-tag">חנות בהמשך...</span>}
+          </div>
           {record.notes && <p className="notes">{record.notes}</p>}
           {record.discogsId && (
             <a className="ext-link" href={`https://www.discogs.com/release/${record.discogsId}`} target="_blank" rel="noreferrer">
@@ -134,20 +162,7 @@ export function RecordDetail({
         </div>
       </div>
 
-      {record.tracks && record.tracks.length > 0 && (
-        <section className="tracks">
-          <h4>רשימת שירים</h4>
-          <ol>
-            {record.tracks.map((t, i) => (
-              <li key={i} dir="auto">
-                <span className="pos">{t.position}</span>
-                <span className="t-title">{t.title}</span>
-                {t.length && <span className="len">{t.length}</span>}
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
+      <DiscogsSections record={record} onPatch={onPatch} onArtist={onArtist} />
     </Modal>
   )
 }

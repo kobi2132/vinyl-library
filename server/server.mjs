@@ -7,6 +7,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { createHmac, randomBytes } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { discogsProxy, fxRates } from './discogs.mjs'
 
 const PORT = Number(process.env.PORT || 8080)
 const DATA = process.env.DATA_DIR || '/data'
@@ -355,6 +356,7 @@ function info() {
     messages: one('SELECT COUNT(*) AS n FROM messages').n,
     avgLibBytes: Math.round(one('SELECT AVG(lib_bytes) AS n FROM devices WHERE lib_bytes IS NOT NULL').n || 0),
     serverStarted: STARTED,
+    discogs: discogs.info(),
   }
 }
 
@@ -394,11 +396,15 @@ async function admin(req, res, path) {
 // ---------- server ----------
 
 const STARTED = Date.now()
+const discogs = discogsProxy(db, DATA, limited, ipOf)
 
 createServer(async (req, res) => {
   try {
-    const path = new URL(req.url, 'http://x').pathname.replace(/^\/api\/app\/?/, '').replace(/\/$/, '')
+    const url = new URL(req.url, 'http://x')
+    if (url.pathname.startsWith('/api/discogs/')) return await discogs(req, res, url)
+    const path = url.pathname.replace(/^\/api\/app\/?/, '').replace(/\/$/, '')
     if (req.method === 'GET' && path === 'health') return send(res, 200, { ok: true })
+    if (req.method === 'GET' && path === 'fx') return send(res, 200, await fxRates())
     if (req.method === 'POST' && path === 'events') return await postEvents(req, res)
     if (req.method === 'POST' && path === 'contact') return await postContact(req, res)
     if (path.startsWith('admin/')) return await admin(req, res, path.slice(6))

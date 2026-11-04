@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { RecordDraft, Track } from '../types'
 import { Cover } from './Cover'
+import { GRADES, isGrade } from '../lib/grades'
+import { GradeHelp } from './GradeLegend'
 
 function tracksToText(tracks?: Track[]) {
   return (tracks ?? []).map((t) => [t.position, t.title, t.length].filter(Boolean).join('  ')).join('\n')
@@ -99,6 +101,18 @@ export function RecordForm({
       <Extras>
       <div className="row">
         <label>
+          <span className="label-with-help">
+            מצב התקליט <GradeHelp />
+          </span>
+          <GradeSelect value={d.mediaCondition} onChange={(g) => set('mediaCondition', g)} />
+        </label>
+        <label>
+          מצב העטיפה
+          <GradeSelect value={d.sleeveCondition} onChange={(g) => set('sleeveCondition', g)} />
+        </label>
+      </div>
+      <div className="row">
+        <label>
           שנה
           <input
             inputMode="numeric"
@@ -154,7 +168,7 @@ export function RecordForm({
       </label>
       <label>
         הערות
-        <textarea rows={2} value={d.notes ?? ''} onChange={(e) => set('notes', e.target.value)} placeholder="מצב התקליט, מאיפה קניתי, חתום…" />
+        <textarea rows={2} value={d.notes ?? ''} onChange={(e) => set('notes', e.target.value)} placeholder="מאיפה קניתי, חתום, מהדורה מיוחדת…" />
       </label>
       </Extras>
       <div className="form-actions">
@@ -169,11 +183,24 @@ export function RecordForm({
   )
 }
 
+function GradeSelect({ value, onChange }: { value?: RecordDraft['mediaCondition']; onChange: (g: RecordDraft['mediaCondition']) => void }) {
+  return (
+    <select value={value ?? ''} onChange={(e) => onChange(isGrade(e.target.value) ? e.target.value : undefined)}>
+      <option value="">לא סומן</option>
+      {GRADES.map((g) => (
+        <option key={g.grade} value={g.grade}>
+          {g.grade} · {g.name}
+        </option>
+      ))}
+    </select>
+  )
+}
+
 const Plain = ({ children }: { children: React.ReactNode }) => <>{children}</>
 
 const FoldedExtras = ({ children }: { children: React.ReactNode }) => (
   <details className="more-fields">
-    <summary>פרטים נוספים: שנה, לייבל, ברקוד, שירים</summary>
+    <summary>פרטים נוספים: מצב, שנה, לייבל, ברקוד, שירים</summary>
     <div className="more-fields-body">{children}</div>
   </details>
 )

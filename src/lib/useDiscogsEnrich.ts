@@ -5,10 +5,11 @@ import { DiscogsUnavailable, dgGetReleaseDetails } from './discogs'
 /*
  * A Discogs CSV has no covers, genres or tracks. After an import we fetch each release from
  * Discogs in the background, slowly: our token allows about 60 requests a minute for everyone
- * using the app, so one every 1.5 seconds leaves room for searches. Saved in batches, and it
+ * using the app (the server also lets one person use at most 40 a minute), so one every 2 seconds
+ * leaves room for searches. Saved in batches, and it
  * carries on next time the app is opened if it was closed halfway.
  */
-const GAP_MS = 1500
+const GAP_MS = 2000
 const BATCH = 10
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))

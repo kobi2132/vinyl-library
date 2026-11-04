@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { LibraryFile, RecordDraft, VinylRecord } from '../types'
+import type { LibraryFile, RecordDraft, VinylRecord, WantItem } from '../types'
 import { emptyLibrary, mergeLibraries, sameContent } from './merge'
 import { AuthExpiredError, getStoredToken, getStoredUser, signIn, signOut, type GoogleUser } from './google'
 import { createLibrary, findLibraryFile, readLibrary, updateLibrary } from './drive'
@@ -193,6 +193,42 @@ export function useLibrary() {
     [commit],
   )
 
+  /** Wantlist: add (skipped when the same Discogs release or artist + title is already there) */
+  const addWant = useCallback(
+    (w: Omit<WantItem, 'id' | 'addedAt' | 'updatedAt'>) => {
+      const cur = libRef.current
+      const wants = cur.wants ?? []
+      const same = (x: WantItem) =>
+        (w.discogsId && x.discogsId === w.discogsId) || (x.artist.toLowerCase() === w.artist.toLowerCase() && x.title.toLowerCase() === w.title.toLowerCase())
+      if (wants.some(same)) return false
+      const now = new Date().toISOString()
+      commit({ ...cur, wants: [...wants, { ...w, id: crypto.randomUUID(), addedAt: now, updatedAt: now }] })
+      return true
+    },
+    [commit],
+  )
+
+  const removeWant = useCallback(
+    (id: string) => {
+      const cur = libRef.current
+      commit({
+        ...cur,
+        wants: (cur.wants ?? []).filter((w) => w.id !== id),
+        deleted: { ...(cur.deleted ?? {}), [id]: new Date().toISOString() },
+      })
+    },
+    [commit],
+  )
+
+  const restoreWant = useCallback(
+    (w: WantItem) => {
+      const cur = libRef.current
+      if ((cur.wants ?? []).some((x) => x.id === w.id)) return
+      commit({ ...cur, wants: [...(cur.wants ?? []), { ...w, updatedAt: new Date().toISOString() }] })
+    },
+    [commit],
+  )
+
   const importLibrary = useCallback(
     (incoming: LibraryFile) => {
       commit(mergeLibraries(libRef.current, incoming))
@@ -245,6 +281,7 @@ export function useLibrary() {
     mode,
     user,
     records: lib.records,
+    wants: lib.wants ?? [],
     library: lib,
     status,
     error,
@@ -255,6 +292,9 @@ export function useLibrary() {
     importLibrary,
     addRecords,
     patchRecords,
+    addWant,
+    removeWant,
+    restoreWant,
     connectGoogle,
     startLocal,
     logout,

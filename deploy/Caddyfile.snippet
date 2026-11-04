@@ -1,20 +1,10 @@
 # Add to /srv/proxy/Caddyfile, then reload Caddy.
-# Replace PUT_DISCOGS_TOKEN_HERE with a Discogs personal access token
-# (discogs.com > Settings > Developers). It stays on the server only.
+# The Discogs token lives on the server in /srv/apps/vinyl/data/discogs-token (never in git);
+# vinyl-api adds it to each request and keeps Discogs answers in its database (server/discogs.mjs).
 my-vinyl-library.jacob-apps.co.il {
-	# Discogs lookups: only search and release details are passed through
-	handle_path /api/discogs/* {
-		@blocked not path /database/search /releases/*
-		respond @blocked 404
-		reverse_proxy https://api.discogs.com {
-			header_up Authorization "Discogs token=PUT_DISCOGS_TOKEN_HERE"
-			header_up User-Agent "MyVinylLibrary/1.0 +https://my-vinyl-library.jacob-apps.co.il"
-			header_up -Cookie
-			header_up Host api.discogs.com
-			header_up -X-Forwarded-Host
-			header_up -X-Forwarded-For
-			header_up -X-Forwarded-Proto
-		}
+	# Discogs lookups, through vinyl-api's cache
+	handle /api/discogs/* {
+		reverse_proxy vinyl-api:8080
 	}
 	# contact messages, usage stats and the developer page
 	handle /api/app/* {

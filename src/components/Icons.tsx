@@ -87,3 +87,22 @@ export const CameraIcon = (p: P) => (
     <circle cx="12" cy="13" r="3.5" />
   </Svg>
 )
+
+export const TagIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M3 12V4h8l10 10-8 8z" />
+    <circle cx="7.5" cy="8.5" r="1.5" />
+  </Svg>
+)
+
+export const HeartIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" />
+  </Svg>
+)
+
+export const PlayIcon = (p: P) => (
+  <Svg {...p} fill>
+    <path d="M8 5v14l11-7z" />
+  </Svg>
+)
