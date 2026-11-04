@@ -1,6 +1,6 @@
 # vinyl-api
 
-שירות קטן שמקבל פניות מטופס "צור קשר", סטטיסטיקות שימוש אנונימיות, ומגיש את הנתונים לעמוד המפתח.
+שירות קטן שמעביר בקשות ל-Discogs ושומר את התשובות (כדי לא להיתקע על מגבלת ~60 בקשות לדקה שמשותפת לכל המשתמשים), מקבל פניות מטופס "צור קשר", סטטיסטיקות שימוש אנונימיות, ומגיש את הנתונים לעמוד המפתח.
 בלי תלויות: Node 22 בלבד (`node:http`, `node:sqlite`, `node:crypto`).
 
 - רץ בקונטיינר `vinyl-api` (ראו `deploy/docker-compose.yml`), ו-Caddy מעביר אליו את `/api/app/*`.
@@ -22,4 +22,6 @@ npm run dev                                                                    #
 | POST | `/api/app/events` | אירועי שימוש (מזהה מכשיר, שם פיצ'ר, גודל ספרייה) |
 | POST | `/api/app/contact` | פנייה חדשה. עד 5 ביום ממכשיר |
 | GET | `/api/app/admin/summary` · `stats?since=` · `users?since=` · `info` · `messages` | עמוד המפתח |
+| GET | `/api/discogs/*` | Discogs דרך מטמון (`server/discogs.mjs`). הטוקן בקובץ `/srv/apps/vinyl/data/discogs-token` |
+| GET | `/api/app/fx` | שערי מטבע לשקל (מחירי Discogs), מתעדכן כל 12 שעות |
 | PATCH / DELETE | `/api/app/admin/messages/:id` | סימון טופל / מחיקה |
