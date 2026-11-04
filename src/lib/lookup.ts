@@ -2,12 +2,12 @@ import type { RecordDraft } from '../types'
 import { getReleaseDetails, searchByBarcode, searchByCatno, searchByQuery, searchByText, type Candidate } from './musicbrainz'
 import { DiscogsUnavailable, dgGetReleaseDetails, dgSearchByBarcode, dgSearchByCatno, dgSearchByQuery, dgSearchByText } from './discogs'
 
-/** Ask MusicBrainz and Discogs together; show whatever either finds. */
+/** Ask MusicBrainz and Discogs together; show whatever either finds, Discogs first (it has value, pressings and more). */
 async function both(mb: Promise<Candidate[]>, dg: Promise<Candidate[]>): Promise<Candidate[]> {
   const [a, b] = await Promise.allSettled([mb, dg])
   const fromMb = a.status === 'fulfilled' ? a.value : []
   const fromDg = b.status === 'fulfilled' ? b.value : []
-  const found = [...fromMb, ...fromDg]
+  const found = [...fromDg, ...fromMb]
   if (found.length) return found
   const failures = [a, b]
     .filter((x): x is PromiseRejectedResult => x.status === 'rejected')
