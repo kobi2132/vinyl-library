@@ -29,9 +29,12 @@ export function AddFlow({
   onSave,
   onClose,
   onOpenExisting,
+  forWants = false,
 }: {
   start: AddStart
   records: VinylRecord[]
+  /** Adding to the wantlist instead of the library (no "you already have it" check) */
+  forWants?: boolean
   genreOptions: string[]
   onSave: (d: RecordDraft) => void
   onClose: () => void
@@ -176,7 +179,7 @@ export function AddFlow({
   }
 
   const duplicate = (d: RecordDraft) =>
-    records.find(
+    forWants ? undefined : records.find(
       (r) =>
         (d.mbid && r.mbid === d.mbid) ||
         (d.discogsId && r.discogsId === d.discogsId) ||
@@ -192,9 +195,11 @@ export function AddFlow({
       : step.kind === 'pick'
         ? 'איזו הוצאה יש לכם?'
         : step.kind === 'form'
-          ? step.draft.mbid || step.draft.discogsId
-            ? 'פרטי התקליט'
-            : 'הוספה ידנית'
+          ? forWants
+            ? 'הוספה לרשימת המשאלות'
+            : step.draft.mbid || step.draft.discogsId
+              ? 'פרטי התקליט'
+              : 'הוספה ידנית'
           : step.kind === 'duplicate'
             ? 'כבר יש לכם את התקליט הזה'
             : step.kind === 'notfound'
@@ -265,7 +270,11 @@ export function AddFlow({
       {step.kind === 'pick' && (
         <>
           <p className="hint">
-            {step.items.length === 1 ? 'נמצאה הוצאה אחת. בחרו בה כדי להוסיף לספרייה.' : `נמצאו ${step.items.length} הוצאות. בחרו את זו שזהה לשלכם והיא תתווסף לספרייה.`}
+            {forWants
+              ? 'בחרו את ההוצאה שאתם מחפשים והיא תתווסף לרשימת המשאלות.'
+              : step.items.length === 1
+                ? 'נמצאה הוצאה אחת. בחרו בה כדי להוסיף לספרייה.'
+                : `נמצאו ${step.items.length} הוצאות. בחרו את זו שזהה לשלכם והיא תתווסף לספרייה.`}
           </p>
           <CandidateList items={step.items} busyId={busyId} onPick={(c) => pick(c, step.barcode)} />
           <div className="form-actions">
@@ -323,6 +332,7 @@ export function AddFlow({
           onSave={onSave}
           onCancel={() => void goBack()}
           onDirtyChange={(v) => (formDirty.current = v)}
+          saveLabel={forWants ? 'הוספה לרשימה' : undefined}
         />
       )}
     </Modal>
@@ -338,7 +348,9 @@ function FormStep({
   onSave,
   onCancel,
   onDirtyChange,
+  saveLabel = 'הוספה לספרייה',
 }: {
+  saveLabel?: string
   draft: RecordDraft
   genreOptions: string[]
   duplicate: (d: RecordDraft) => VinylRecord | undefined
@@ -377,7 +389,7 @@ function FormStep({
       <RecordForm
         initial={draft}
         genreOptions={genreOptions}
-        saveLabel="הוספה לספרייה"
+        saveLabel={saveLabel}
         onCancel={onCancel}
         onDirtyChange={onDirtyChange}
         onSave={(d) => (duplicate(d) ? setPending(d) : onSave(d))}

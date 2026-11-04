@@ -102,7 +102,7 @@ interface DgRelease {
 }
 
 export async function dgGetReleaseDetails(id: string): Promise<RecordDraft> {
-  const r = await dgFetch<DgRelease>(`/releases/${encodeURIComponent(id)}`)
+  const r = await rawRelease(id)
   const artist = (r.artists ?? [])
     .map((a, i, all) => cleanName(a.anv || a.name) + (i < all.length - 1 ? ` ${a.join || ','} `.replace(' , ', ', ') : ''))
     .join('')
@@ -157,4 +157,176 @@ export async function dgCollectionPage(user: string, page: number): Promise<{ pa
     })
   }
   return { pages: j.pagination?.pages ?? 1, covers }
+}
+
+/* ---------- More from Discogs, shown on the record page (fetched when the page opens, not saved in Drive) ---------- */
+
+/** Results kept for this visit, so reopening a record page costs no request. */
+const memo = new Map<string, Promise<unknown>>()
+function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
+  let p = memo.get(key) as Promise<T> | undefined
+  if (!p) {
+    p = load()
+    memo.set(key, p)
+    p.catch(() => memo.delete(key))
+  }
+  return p
+}
+
+export interface Credit {
+  name: string
+  role: string
+}
+
+export interface ReleaseExtras {
+  masterId?: number
+  artists: { id: number; name: string }[]
+  credits: Credit[]
+  /** Matrix / runout and the other markings that tell one pressing from another */
+  identifiers: { type: string; value: string; description?: string }[]
+  notes?: string
+  videos: { title: string; uri: string }[]
+  images: string[]
+  have?: number
+  want?: number
+  rating?: { average: number; count: number }
+  numForSale?: number
+}
+
+interface DgReleaseFull extends DgRelease {
+  master_id?: number
+  artists?: { id: number; name: string; anv?: string; join?: string }[]
+  extraartists?: { name: string; anv?: string; role: string }[]
+  notes?: string
+  videos?: { title: string; uri: string }[]
+  identifiers?: { type: string; value: string; description?: string }[]
+  community?: { have?: number; want?: number; rating?: { average: number; count: number } }
+  num_for_sale?: number
+}
+
+/** One request per release per visit, shared by the add flow and the record page. */
+const rawRelease = (id: string) => cached(`raw${id}`, () => dgFetch<DgReleaseFull>(`/releases/${encodeURIComponent(id)}`))
+
+const IDENT_ORDER = ['Matrix / Runout', 'Barcode', 'Label Code', 'Rights Society', 'Pressing Plant ID', 'Mastering SID Code', 'Mould SID Code']
+
+export function dgReleaseExtras(id: number): Promise<ReleaseExtras> {
+  return cached(`r${id}`, async () => {
+    const r = await rawRelease(String(id))
+    const order = (t: string) => (IDENT_ORDER.indexOf(t) + 1 || 99)
+    return {
+      masterId: r.master_id || undefined,
+      artists: (r.artists ?? []).filter((a) => a.id).map((a) => ({ id: a.id, name: cleanName(a.name) })),
+      credits: (r.extraartists ?? []).map((a) => ({ name: cleanName(a.anv || a.name), role: a.role })),
+      identifiers: [...(r.identifiers ?? [])].sort((a, b) => order(a.type) - order(b.type)),
+      notes: r.notes?.trim() || undefined,
+      videos: (r.videos ?? []).filter((v) => /youtu/.test(v.uri)),
+      images: (r.images ?? []).map((im) => im.uri).filter(Boolean),
+      have: r.community?.have,
+      want: r.community?.want,
+      rating: r.community?.rating?.count ? r.community.rating : undefined,
+      numForSale: r.num_for_sale,
+    }
+  })
+}
+
+export interface Version {
+  id: number
+  title: string
+  format: string
+  label: string
+  catno: string
+  country: string
+  year?: number
+  vinyl: boolean
+  thumb?: string
+}
+
+interface DgVersions {
+  versions: { id: number; title: string; format?: string; label?: string; catno?: string; country?: string; released?: string; major_formats?: string[]; thumb?: string }[]
+}
+
+/** Every pressing of the album (the Discogs "master"), oldest first. */
+export function dgVersions(masterId: number): Promise<Version[]> {
+  return cached(`m${masterId}`, async () => {
+    const j = await dgFetch<DgVersions>(`/masters/${masterId}/versions?per_page=100&sort=released&sort_order=asc`)
+    return (j.versions ?? []).map((v) => {
+      const y = parseInt(v.released ?? '', 10)
+      return {
+        id: v.id,
+        title: v.title,
+        format: v.format ?? '',
+        label: cleanName(v.label ?? ''),
+        catno: v.catno && v.catno !== 'none' ? v.catno : '',
+        country: v.country ?? '',
+        year: y > 0 ? y : undefined,
+        vinyl: (v.major_formats ?? []).some((f) => /vinyl/i.test(f)) || /vinyl|LP/.test(v.format ?? ''),
+        thumb: v.thumb || undefined,
+      }
+    })
+  })
+}
+
+export interface Price {
+  value: number
+  currency: string
+}
+
+/**
+ * What Discogs suggests asking for this release in each condition. Discogs works it out from
+ * past sales, so one odd sale (a $1 bargain) barely moves it. Needs the token's own Discogs
+ * account to have its seller settings filled in; null when Discogs has no suggestion.
+ */
+export function dgPriceSuggestions(id: number): Promise<Partial<Record<string, Price>> | null> {
+  return cached(`p${id}`, async () => {
+    try {
+      const j = await dgFetch<Record<string, Price>>(`/marketplace/price_suggestions/${id}`)
+      const out: Record<string, Price> = {}
+      for (const [k, v] of Object.entries(j)) {
+        const code = k.match(/\(([^)]+)\)\s*$/)?.[1]?.split(/\s+/)[0]
+        if (code && v && typeof v.value === 'number' && v.value > 0) out[code] = v
+      }
+      return Object.keys(out).length ? out : null
+    } catch (e) {
+      if (e instanceof DiscogsUnavailable) return null
+      throw e
+    }
+  })
+}
+
+export interface ArtistRelease {
+  /** The release to fetch (for an album with many pressings, its main pressing) */
+  releaseId: number
+  masterId?: number
+  title: string
+  year?: number
+  format?: string
+  thumb?: string
+}
+
+interface DgArtistReleases {
+  pagination: { pages: number }
+  releases: { id: number; type: 'master' | 'release'; main_release?: number; title: string; year?: number; role: string; format?: string; thumb?: string }[]
+}
+
+/** The artist's own releases (not appearances on other people's records), oldest first. */
+export function dgArtistReleases(artistId: number): Promise<ArtistRelease[]> {
+  return cached(`a${artistId}`, async () => {
+    const out: ArtistRelease[] = []
+    for (let page = 1; page <= 3; page++) {
+      const j = await dgFetch<DgArtistReleases>(`/artists/${artistId}/releases?sort=year&sort_order=asc&per_page=100&page=${page}`)
+      for (const r of j.releases ?? []) {
+        if (r.role !== 'Main') continue
+        out.push({
+          releaseId: r.type === 'master' ? (r.main_release ?? r.id) : r.id,
+          masterId: r.type === 'master' ? r.id : undefined,
+          title: r.title,
+          year: r.year || undefined,
+          format: r.format,
+          thumb: r.thumb || undefined,
+        })
+      }
+      if (page >= (j.pagination?.pages ?? 1)) break
+    }
+    return out
+  })
 }

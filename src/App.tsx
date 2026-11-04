@@ -6,7 +6,7 @@ import { decadeOf, initialOf, matches, sortRecords, SORT_LABELS, type SortKey } 
 import { exportExcel, exportJson } from './lib/exporters'
 import { PrintSheet } from './components/PrintSheet'
 import { parseImport } from './lib/merge'
-import type { RecordDraft, VinylRecord } from './types'
+import type { RecordDraft, VinylRecord, WantItem } from './types'
 import { Welcome } from './components/Welcome'
 import { Menu } from './components/Menu'
 import { Cover } from './components/Cover'
@@ -18,6 +18,9 @@ import { ContactPage } from './components/ContactPage'
 import { DevPage } from './components/DevPage'
 import { DiscogsImport } from './components/DiscogsImport'
 import { useDiscogsEnrich } from './lib/useDiscogsEnrich'
+import { ArtistPage } from './components/ArtistPage'
+import { Wantlist } from './components/Wantlist'
+import { dgGetReleaseDetails } from './lib/discogs'
 import { adminFetch, setLibrary, track, trackOpen } from './lib/telemetry'
 import { ADMIN_EMAIL } from './config'
 import { BarcodeIcon, GridIcon, ListIcon, PlusIcon, SearchIcon } from './components/Icons'
@@ -70,6 +73,9 @@ export default function App() {
   const [genre, setGenre] = useState('')
   const [decade, setDecade] = useState('')
   const [adding, setAdding] = useState<AddStart | null>(null)
+  const [addingWant, setAddingWant] = useState(false)
+  const [wantsOpen, setWantsOpen] = useState(false)
+  const [artist, setArtist] = useState<{ id: number; name: string } | null>(null)
   const [openId, setOpenId] = useState<string | null>(null)
   const [toast, setToast] = useState<{ text: string; undo?: () => void } | null>(null)
   const [printing, setPrinting] = useState(false)
@@ -209,6 +215,25 @@ export default function App() {
     say(records.length === 1 ? 'תקליט אחד יובא מ-Discogs' : `יובאו ${records.length} תקליטים מ-Discogs`)
   }
 
+  const addWant = (w: Omit<WantItem, 'id' | 'addedAt' | 'updatedAt'>) =>
+    say(lib.addWant(w) ? `"${w.title}" נוסף לרשימת המשאלות` : `"${w.title}" כבר ברשימת המשאלות`)
+
+  /** Got a record from the wantlist: into the library (with full details when it came from Discogs), off the list */
+  const gotWant = async (w: WantItem) => {
+    let draft: RecordDraft = { artist: w.artist, title: w.title, year: w.year, label: w.label, catalogNumber: w.catalogNumber, country: w.country, format: w.format, coverUrl: w.coverUrl, discogsId: w.discogsId, genres: [] }
+    if (w.discogsId) {
+      try {
+        const d = await dgGetReleaseDetails(String(w.discogsId))
+        draft = { ...d, coverUrl: d.coverUrl || w.coverUrl }
+      } catch {
+        /* keep what the wantlist had */
+      }
+    }
+    lib.addRecord(draft)
+    lib.removeWant(w.id)
+    say(`"${w.title}" עבר לספרייה`)
+  }
+
   const logout = () => {
     if (lib.hasUnsynced() && !confirm('יש שינויים שעוד לא נשמרו בדרייב. להתנתק בכל זאת?')) return
     lib.logout()
@@ -262,6 +287,8 @@ export default function App() {
             onConnect={() => void lib.connectGoogle().then((err) => err && say(`ההתחברות לא הושלמה: ${err}`))}
             onLogout={logout}
             onContact={() => setContactOpen(true)}
+            onWants={() => setWantsOpen(true)}
+            wantsCount={lib.wants.length}
             onDev={isAdmin ? () => setDevOpen(true) : undefined}
             devOpenCount={devCount}
           />
@@ -377,7 +404,10 @@ export default function App() {
                 {g.items.map((r) => (
                   <li key={r.id}>
                     <button className="card" onClick={() => setOpenId(r.id)}>
-                      <Cover url={r.coverUrl} artist={r.artist} title={r.title} size={view === 'grid' ? 'md' : 'sm'} />
+                      <span className="cover-wrap">
+                        <Cover url={r.coverUrl} artist={r.artist} title={r.title} size={view === 'grid' ? 'md' : 'sm'} />
+                        {r.forSale && <span className="sale-badge">למכירה</span>}
+                      </span>
                       <div className="card-text">
                         <strong dir="auto">{r.title}</strong>
                         <span dir="auto">{r.artist}</span>
@@ -447,6 +477,56 @@ export default function App() {
           onGenre={(g) => {
             setGenre(g)
             setOpenId(null)
+          }}
+          onPatch={(p, message) => {
+            lib.patchRecords(new Map([[open.id, p]]))
+            if (message) say(message)
+          }}
+          onArtist={(id, name) => setArtist({ id, name })}
+        />
+      )}
+
+      {artist && (
+        <ArtistPage
+          artistId={artist.id}
+          name={artist.name}
+          records={lib.records}
+          wants={lib.wants}
+          onClose={() => setArtist(null)}
+          onOpenRecord={(id) => {
+            setArtist(null)
+            setOpenId(id)
+          }}
+          onAddWant={(a) =>
+            addWant({ artist: artist.name, title: a.title, year: a.year, format: a.format, coverUrl: a.thumb, discogsId: a.releaseId })
+          }
+        />
+      )}
+
+      {wantsOpen && (
+        <Wantlist
+          wants={lib.wants}
+          onClose={() => setWantsOpen(false)}
+          onAdd={() => setAddingWant(true)}
+          onGotIt={gotWant}
+          onRemove={(w) => {
+            lib.removeWant(w.id)
+            say(`"${w.title}" הוסר מהרשימה`, () => lib.restoreWant(w))
+          }}
+        />
+      )}
+
+      {addingWant && (
+        <AddFlow
+          start="manual"
+          forWants
+          records={lib.records}
+          genreOptions={[]}
+          onClose={() => setAddingWant(false)}
+          onOpenExisting={() => setAddingWant(false)}
+          onSave={(d) => {
+            addWant({ artist: d.artist, title: d.title, year: d.year, label: d.label, catalogNumber: d.catalogNumber, country: d.country, format: d.format, coverUrl: d.coverUrl, discogsId: d.discogsId })
+            setAddingWant(false)
           }}
         />
       )}

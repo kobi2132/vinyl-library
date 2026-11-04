@@ -16,6 +16,8 @@ export function Menu({
   onConnect,
   onLogout,
   onContact,
+  onWants,
+  wantsCount,
   devOpenCount,
   onDev,
 }: {
@@ -31,6 +33,8 @@ export function Menu({
   onConnect: () => void
   onLogout: () => void
   onContact: () => void
+  onWants: () => void
+  wantsCount: number
   /** Only for the app's owner: open contact messages, shown on the developer page item */
   devOpenCount?: number
   onDev?: () => void
@@ -88,6 +92,17 @@ export function Menu({
             </>
           )}
           {isLocal && <div className="menu-user"><small>הספרייה שמורה רק במכשיר הזה</small></div>}
+          <button
+            role="menuitem"
+            onClick={() => {
+              setOpen(false)
+              onWants()
+            }}
+          >
+            רשימת המשאלות
+            {wantsCount > 0 && <span className="menu-count">{wantsCount}</span>}
+          </button>
+          <hr />
           {!isLocal && item('סנכרון עכשיו', onSync)}
           {item('ייצוא לאקסל', onExportExcel)}
           {item('ייצוא ל-PDF / הדפסה', onExportPdf)}
