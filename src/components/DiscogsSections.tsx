@@ -10,6 +10,9 @@ import {
   type Version,
 } from '../lib/discogs'
 import { formatPrice } from '../lib/fx'
+import { discogsCandidates } from '../lib/discogsLink'
+import type { Candidate } from '../lib/musicbrainz'
+import { CandidateList } from './CandidateList'
 import { useAsync } from '../lib/useAsync'
 import { GradeHelp } from './GradeLegend'
 import { PlayIcon } from './Icons'
@@ -51,6 +54,8 @@ export function DiscogsSections({
           </div>
         </Section>
       )}
+
+      {!id && <LinkDiscogs record={record} onPatch={onPatch} />}
 
       {id && !offline && (
         <>
@@ -395,5 +400,73 @@ function VersionRow({
         </div>
       )}
     </li>
+  )
+}
+
+/* ---------- A record without Discogs (from MusicBrainz or typed in): find it there ---------- */
+
+function LinkDiscogs({ record, onPatch }: { record: VinylRecord; onPatch: (p: Partial<VinylRecord>, message?: string) => void }) {
+  const [state, setState] = useState<{ kind: 'idle' | 'loading' } | { kind: 'list'; items: Candidate[] } | { kind: 'error'; text: string }>({ kind: 'idle' })
+  const [busy, setBusy] = useState<string | null>(null)
+
+  const search = async () => {
+    setState({ kind: 'loading' })
+    try {
+      setState({ kind: 'list', items: await discogsCandidates(record) })
+    } catch (e) {
+      setState({ kind: 'error', text: e instanceof DiscogsUnavailable ? 'Discogs לא זמין כרגע.' : (e as Error).message })
+    }
+  }
+
+  const pick = async (c: Candidate) => {
+    setBusy(c.source + c.id)
+    try {
+      // the owner's details stay; only what's missing is filled in
+      const d = await dgGetReleaseDetails(c.id)
+      onPatch(
+        {
+          discogsId: d.discogsId,
+          label: record.label || d.label,
+          catalogNumber: record.catalogNumber || d.catalogNumber,
+          country: record.country || d.country,
+          barcode: record.barcode || d.barcode,
+          format: record.format || d.format,
+          coverUrl: record.coverUrl || d.coverUrl,
+          tracks: record.tracks?.length ? record.tracks : d.tracks,
+          genres: record.genres.length ? record.genres : d.genres,
+        },
+        'התקליט חובר ל-Discogs',
+      )
+    } catch (e) {
+      setState({ kind: 'error', text: (e as Error).message })
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  return (
+    <div className="link-box">
+      <strong>חיבור ל-Discogs</strong>
+      <p className="hint">
+        התקליט הזה הגיע ממאגר אחר (או הוזן ידנית), ולכן אין לו שווי, הדפסות, קרדיטים ונדירות. מצאו אותו ב-Discogs כדי לקבל את כל אלה. הפרטים שכבר
+        רשומים אצלכם לא ישתנו.
+      </p>
+      {state.kind === 'idle' && (
+        <button className="btn primary small" onClick={search}>
+          חיפוש ב-Discogs
+        </button>
+      )}
+      {state.kind === 'loading' && <p className="hint">מחפש…</p>}
+      {state.kind === 'error' && <p className="notice error">{state.text}</p>}
+      {state.kind === 'list' &&
+        (state.items.length ? (
+          <>
+            <p className="hint">בחרו את ההוצאה שזהה לשלכם:</p>
+            <CandidateList items={state.items} busyId={busy} onPick={pick} />
+          </>
+        ) : (
+          <p className="hint">לא מצאתי את התקליט ב-Discogs.</p>
+        ))}
+    </div>
   )
 }
